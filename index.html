@@ -285,110 +285,525 @@ const UMP={2004:671550,2005:711843,2006:819100,2007:900560,2008:972604,2009:1069
 
 // Regencies: [id, name, province (today), type, minimum wage as a ratio of Jakarta's in 2024, lat, lon, specialties, overrides]
 // Types: M metro · K kota · B kabupaten · R remote kabupaten (higher logistics and rent)
-const REG_RAW=[
-  ['bna','Kota Banda Aceh','Aceh','K',.68,5.55,95.32,'kuliner tangkap'],
-  ['acg','Kab. Aceh Tengah (Takengon)','Aceh','B',.68,4.62,96.85,'kopi'],
-  ['mdn','Kota Medan','Sumatera Utara','M',.74,3.59,98.67,'kuliner konveksi',{dem:0.95,land:0.8}],
-  ['dsd','Kab. Deli Serdang','Sumatera Utara','B',.70,3.42,98.70,'sawit ayam'],
-  ['sim','Kab. Simalungun','Sumatera Utara','B',.57,2.90,99.05,'sawit kopi karet'],
-  ['kar','Kab. Karo','Sumatera Utara','B',.59,3.10,98.50,'cabai kopi'],
-  ['pdg','Kota Padang','Sumatera Barat','K',.55,-0.95,100.35,'kuliner tangkap'],
-  ['agm','Kab. Agam','Sumatera Barat','B',.55,-0.25,100.15,'kopi padi cabai'],
-  ['pku','Kota Pekanbaru','Riau','K',.68,0.51,101.45,'kuliner logistik'],
-  ['rhl','Kab. Rokan Hulu','Riau','B',.67,0.88,100.48,'sawit karet'],
-  ['btm','Kota Batam','Kepulauan Riau','M',.93,1.13,104.05,'konveksi logistik'],
-  ['bnt','Kab. Bintan','Kepulauan Riau','B',.77,1.08,104.48,'wisata tangkap'],
-  ['jmb','Kota Jambi','Jambi','K',.61,-1.61,103.61,'kuliner'],
-  ['mjb','Kab. Muaro Jambi','Jambi','B',.60,-1.55,103.80,'sawit karet'],
-  ['plg','Kota Palembang','Sumatera Selatan','M',.71,-2.98,104.75,'kuliner konveksi'],
-  ['oki','Kab. Ogan Komering Ilir','Sumatera Selatan','B',.68,-3.40,105.30,'karet sawit'],
-  ['pgk','Kota Pangkalpinang','Kepulauan Bangka Belitung','K',.71,-2.13,106.11,'tangkap kuliner'],
-  ['blt','Kab. Belitung','Kepulauan Bangka Belitung','B',.73,-2.75,107.65,'wisata tangkap'],
-  ['bkl','Kota Bengkulu','Bengkulu','K',.51,-3.80,102.26,'tangkap kuliner'],
-  ['rjl','Kab. Rejang Lebong','Bengkulu','B',.50,-3.45,102.53,'kopi cabai'],
-  ['bdl','Kota Bandar Lampung','Lampung','K',.61,-5.43,105.26,'kuliner logistik'],
-  ['lmt','Kab. Lampung Tengah','Lampung','B',.55,-4.95,105.25,'jagung sapi udang'],
-  ['lmb','Kab. Lampung Barat','Lampung','B',.53,-5.05,104.15,'kopi'],
-  ['tng','Kota Tangerang','Banten','M',.94,-6.18,106.63,'konveksi logistik'],
-  ['clg','Kota Cilegon','Banten','K',.95,-6.00,106.05,'logistik'],
-  ['pdl','Kab. Pandeglang','Banten','B',.59,-6.31,106.10,'padi wisata'],
-  ['jkt','DKI Jakarta','DKI Jakarta','M',1,-6.20,106.85,'kuliner konveksi logistik',{dem:1.3,land:1.7}],
-  ['bgr','Kab. Bogor','Jawa Barat','B',.90,-6.55,106.80,'lele ayam wisata',{dem:1.05,land:1.0}],
-  ['bdg','Kota Bandung','Jawa Barat','M',.83,-6.91,107.61,'konveksi kuliner'],
-  ['bks','Kota Bekasi','Jawa Barat','M',1.05,-6.24,107.00,'konveksi logistik'],
-  ['krw','Kab. Karawang','Jawa Barat','B',1.04,-6.30,107.30,'padi logistik'],
-  ['grt','Kab. Garut','Jawa Barat','B',.43,-7.22,107.90,'kopi cabai sapi'],
-  ['cjr','Kab. Cianjur','Jawa Barat','B',.59,-6.82,107.14,'padi cabai'],
-  ['imy','Kab. Indramayu','Jawa Barat','B',.53,-6.33,108.32,'padi bandeng tangkap'],
-  ['crb','Kota Cirebon','Jawa Barat','K',.49,-6.73,108.55,'batik kuliner'],
-  ['tsm','Kab. Tasikmalaya','Jawa Barat','B',.49,-7.35,108.20,'konveksi padi'],
-  ['smg','Kota Semarang','Jawa Tengah','M',.64,-6.97,110.42,'kuliner logistik',{dem:0.95,land:0.85}],
-  ['byl','Kab. Boyolali','Jawa Tengah','B',.44,-7.53,110.60,'sapi ayam',{dem:0.7,land:0.5}],
-  ['brb','Kab. Brebes','Jawa Tengah','B',.41,-6.87,109.04,'bawang padi'],
-  ['jpr','Kab. Jepara','Jawa Tengah','B',.48,-6.59,110.67,'mebel tangkap'],
-  ['pkl','Kota Pekalongan','Jawa Tengah','K',.47,-6.89,109.67,'batik konveksi'],
-  ['kds','Kab. Kudus','Jawa Tengah','B',.49,-6.80,110.84,'tembakau konveksi'],
-  ['slo','Kota Surakarta','Jawa Tengah','K',.45,-7.57,110.82,'batik kuliner mebel'],
-  ['tmg','Kab. Temanggung','Jawa Tengah','B',.44,-7.32,110.17,'tembakau kopi'],
-  ['bms','Kab. Banyumas','Jawa Tengah','B',.43,-7.43,109.24,'padi kuliner'],
-  ['ygy','Kota Yogyakarta','DI Yogyakarta','K',.49,-7.80,110.37,'wisata batik kuliner'],
-  ['slm','Kab. Sleman','DI Yogyakarta','B',.46,-7.72,110.36,'lele padi wisata'],
-  ['gkd','Kab. Gunungkidul','DI Yogyakarta','B',.43,-7.97,110.60,'sapi jagung wisata'],
-  ['sby','Kota Surabaya','Jawa Timur','M',.93,-7.26,112.75,'kuliner logistik konveksi',{dem:1.15,land:1.2}],
-  ['sda','Kab. Sidoarjo','Jawa Timur','B',.92,-7.45,112.72,'bandeng udang konveksi'],
-  ['psr','Kab. Pasuruan','Jawa Timur','B',.91,-7.65,112.90,'sapi ayam'],
-  ['mlg','Kota Malang','Jawa Timur','K',.65,-7.98,112.63,'kuliner wisata'],
-  ['jbr','Kab. Jember','Jawa Timur','B',.55,-8.17,113.70,'tembakau kopi padi'],
-  ['bwi','Kab. Banyuwangi','Jawa Timur','B',.55,-8.22,114.37,'udang tangkap wisata'],
-  ['lmg','Kab. Lamongan','Jawa Timur','B',.57,-7.12,112.42,'bandeng tangkap padi kuliner'],
-  ['pbl','Kab. Probolinggo','Jawa Timur','B',.57,-7.75,113.22,'bawang sapi'],
-  ['smp','Kab. Sumenep','Jawa Timur','B',.45,-7.00,113.86,'tembakau sapi rumput'],
-  ['bdu','Kab. Badung','Bali','B',.66,-8.58,115.18,'wisata kuliner',{dem:1.1,land:1.4}],
-  ['dps','Kota Denpasar','Bali','K',.61,-8.65,115.22,'wisata konveksi'],
-  ['gnr','Kab. Gianyar','Bali','B',.59,-8.54,115.33,'wisata mebel'],
-  ['bll','Kab. Buleleng','Bali','B',.55,-8.11,115.09,'wisata kopi'],
-  ['mtr','Kota Mataram','Nusa Tenggara Barat','K',.51,-8.58,116.12,'kuliner wisata'],
-  ['ltm','Kab. Lombok Timur','Nusa Tenggara Barat','B',.48,-8.55,116.53,'tembakau rumput'],
-  ['smw','Kab. Sumbawa','Nusa Tenggara Barat','B',.48,-8.50,117.42,'jagung sapi'],
-  ['kpg','Kota Kupang','Nusa Tenggara Timur','K',.45,-10.17,123.60,'kuliner tangkap'],
-  ['sbt','Kab. Sumba Timur','Nusa Tenggara Timur','R',.43,-9.65,120.26,'sapi rumput'],
-  ['mgb','Kab. Manggarai Barat (Labuan Bajo)','Nusa Tenggara Timur','R',.43,-8.50,119.89,'wisata tangkap'],
-  ['ptk','Kota Pontianak','Kalimantan Barat','K',.57,-0.03,109.33,'kuliner'],
-  ['sgu','Kab. Sanggau','Kalimantan Barat','R',.55,0.13,110.60,'sawit karet'],
-  ['pky','Kota Palangka Raya','Kalimantan Tengah','K',.65,-2.21,113.92,'kuliner'],
-  ['ktm','Kab. Kotawaringin Timur','Kalimantan Tengah','R',.67,-2.53,112.95,'sawit logistik'],
-  ['bjm','Kota Banjarmasin','Kalimantan Selatan','K',.67,-3.32,114.59,'kuliner'],
-  ['tbu','Kab. Tanah Bumbu','Kalimantan Selatan','R',.67,-3.45,115.80,'logistik sawit'],
-  ['bpn','Kota Balikpapan','Kalimantan Timur','K',.71,-1.27,116.83,'logistik kuliner',{dem:1.1,land:1.1}],
-  ['smd','Kota Samarinda','Kalimantan Timur','K',.69,-0.50,117.15,'kuliner'],
-  ['kkr','Kab. Kutai Kartanegara','Kalimantan Timur','R',.71,-0.40,116.98,'logistik sawit'],
-  ['trk','Kota Tarakan','Kalimantan Utara','R',.69,3.30,117.63,'udang tangkap'],
-  ['mnd','Kota Manado','Sulawesi Utara','K',.70,1.47,124.84,'kuliner wisata tangkap'],
-  ['mnh','Kab. Minahasa','Sulawesi Utara','B',.69,1.25,124.83,'cengkeh'],
-  ['gto','Kota Gorontalo','Gorontalo','K',.59,0.54,123.06,'jagung kuliner'],
-  ['pal','Kota Palu','Sulawesi Tengah','K',.57,-0.90,119.87,'kuliner'],
-  ['mrw','Kab. Morowali','Sulawesi Tengah','R',.67,-2.70,121.90,'logistik'],
-  ['mmj','Kab. Mamuju','Sulawesi Barat','R',.57,-2.68,118.89,'kakao sawit'],
-  ['mks','Kota Makassar','Sulawesi Selatan','M',.72,-5.14,119.42,'kuliner logistik'],
-  ['bon','Kab. Bone','Sulawesi Selatan','B',.68,-4.54,120.33,'padi sapi rumput'],
-  ['tor','Kab. Toraja Utara','Sulawesi Selatan','B',.68,-2.97,119.90,'kopi wisata'],
-  ['pin','Kab. Pinrang','Sulawesi Selatan','B',.67,-3.79,119.65,'padi udang bandeng kakao'],
-  ['kdi','Kota Kendari','Sulawesi Tenggara','K',.59,-3.97,122.51,'tangkap kuliner'],
-  ['klk','Kab. Kolaka','Sulawesi Tenggara','R',.59,-4.05,121.60,'kakao rumput logistik'],
-  ['amb','Kota Ambon','Maluku','K',.58,-3.70,128.18,'tangkap cengkeh'],
-  ['tte','Kota Ternate','Maluku Utara','K',.63,0.79,127.38,'cengkeh tangkap'],
-  ['hlt','Kab. Halmahera Tengah','Maluku Utara','R',.63,0.45,127.90,'logistik tangkap'],
-  ['jyp','Kota Jayapura','Papua','K',.79,-2.53,140.72,'kuliner tangkap',{dem:1.0,land:1.3}],
-  ['mrk','Kab. Merauke','Papua Selatan','R',.79,-8.49,140.40,'padi sapi'],
-  ['mmk','Kab. Mimika','Papua Tengah','R',.85,-4.55,136.88,'logistik kuliner'],
-  ['jyw','Kab. Jayawijaya (Wamena)','Papua Pegunungan','R',.79,-4.10,138.95,'kopi'],
-  ['mkw','Kab. Manokwari','Papua Barat','R',.67,-0.86,134.06,'kakao tangkap'],
-  ['sor','Kota Sorong','Papua Barat Daya','K',.67,-0.88,131.25,'tangkap logistik'],
-];
+const REG_RAW=[["1101","Kab. Aceh Selatan","Aceh","B",0.68,3.23,97.28,"padi tangkap",""],
+["1102","Kab. Aceh Tenggara","Aceh","B",0.68,3.43,97.84,"karet tangkap",""],
+["1103","Kab. Aceh Timur","Aceh","B",0.68,4.87,97.72,"karet minyak","logistik"],
+["1104","Kab. Aceh Tengah","Aceh","B",0.68,4.59,96.8,"kopi",""],
+["1105","Kab. Aceh Barat","Aceh","B",0.68,4.33,96.11,"karet padi sawit","logistik"],
+["1106","Kab. Aceh Besar","Aceh","B",0.68,5.47,95.4,"karet kopi padi",""],
+["1107","Kab. Pidie","Aceh","B",0.68,5.3,95.95,"karet padi",""],
+["1108","Kab. Aceh Utara","Aceh","B",0.68,5.09,97.24,"gas karet padi sawit","logistik"],
+["1109","Kab. Simeulue","Aceh","B",0.68,2.57,96.13,"karet padi",""],
+["1110","Kab. Aceh Singkil","Aceh","B",0.68,2.39,97.91,"karet kopi sawit","logistik"],
+["1111","Kab. Bireuen","Aceh","B",0.68,5.19,96.67,"sawit","logistik"],
+["1112","Kab. Aceh Barat Daya","Aceh","B",0.68,3.73,96.85,"kopi",""],
+["1113","Kab. Gayo Lues","Aceh","B",0.68,4.02,97.27,"sawit tangkap","logistik"],
+["1114","Kab. Aceh Jaya","Aceh","B",0.68,4.78,95.58,"kopi tangkap",""],
+["1115","Kab. Nagan Raya","Aceh","B",0.68,4.14,96.38,"karet",""],
+["1116","Kab. Aceh Tamiang","Aceh","B",0.68,4.33,98.07,"gas kopi padi","logistik"],
+["1117","Kab. Bener Meriah","Aceh","B",0.68,4.76,96.88,"karet tangkap",""],
+["1118","Kab. Pidie Jaya","Aceh","B",0.68,5.22,96.23,"padi tangkap",""],
+["1171","Kota Banda Aceh","Aceh","K",0.72,5.55,95.32,"tangkap","kuliner"],
+["1172","Kota Sabang","Aceh","K",0.72,5.85,95.32,"",""],
+["1173","Kota Lhokseumawe","Aceh","K",0.72,5.16,97.13,"gas tangkap","logistik"],
+["1174","Kota Langsa","Aceh","K",0.72,4.47,97.98,"tangkap",""],
+["1175","Kota Subulussalam","Aceh","K",0.72,2.69,97.93,"tangkap",""],
+["1201","Kab. Tapanuli Tengah","Sumatera Utara","B",0.55,1.86,98.63,"cabai karet sawit","logistik"],
+["1202","Kab. Tapanuli Utara","Sumatera Utara","B",0.55,2.02,99.03,"cabai padi sawit","logistik"],
+["1203","Kab. Tapanuli Selatan","Sumatera Utara","B",0.55,1.45,99.27,"cabai",""],
+["1204","Kab. Nias","Sumatera Utara","B",0.55,1.09,97.7,"kopi padi tangkap",""],
+["1205","Kab. Langkat","Sumatera Utara","B",0.55,3.76,98.34,"cabai kopi minyak","logistik"],
+["1206","Kab. Karo","Sumatera Utara","B",0.55,3.11,98.38,"cabai kopi",""],
+["1207","Kab. Deli Serdang","Sumatera Utara","B",0.7,3.47,98.72,"ayam sawit","logistik"],
+["1208","Kab. Simalungun","Sumatera Utara","B",0.55,2.98,99.05,"karet kopi sawit","logistik"],
+["1209","Kab. Asahan","Sumatera Utara","B",0.55,2.88,99.62,"cabai karet",""],
+["1210","Kab. Labuhanbatu","Sumatera Utara","B",0.55,2.21,99.99,"cabai tangkap","wisata"],
+["1211","Kab. Dairi","Sumatera Utara","B",0.55,2.83,98.26,"karet kopi tangkap",""],
+["1212","Kab. Toba","Sumatera Utara","B",0.55,2.4,99.17,"cabai tangkap","wisata"],
+["1213","Kab. Mandailing Natal","Sumatera Utara","B",0.55,0.72,99.49,"cabai padi",""],
+["1214","Kab. Nias Selatan","Sumatera Utara","B",0.55,0.61,97.86,"cabai sawit","logistik"],
+["1215","Kab. Pakpak Bharat","Sumatera Utara","B",0.55,2.58,98.28,"kopi sawit","logistik"],
+["1216","Kab. Humbang Hasundutan","Sumatera Utara","B",0.55,2.25,98.67,"karet kopi tangkap",""],
+["1217","Kab. Samosir","Sumatera Utara","B",0.55,2.57,98.77,"padi sawit","logistik wisata"],
+["1218","Kab. Serdang Bedagai","Sumatera Utara","B",0.55,3.38,99.04,"cabai karet",""],
+["1219","Kab. Batu Bara","Sumatera Utara","B",0.55,3.24,99.46,"kopi padi tangkap",""],
+["1220","Kab. Padang Lawas Utara","Sumatera Utara","B",0.55,1.64,99.66,"cabai karet padi",""],
+["1221","Kab. Padang Lawas","Sumatera Utara","B",0.55,1.16,99.81,"kopi padi tangkap",""],
+["1222","Kab. Labuhanbatu Selatan","Sumatera Utara","B",0.55,1.87,100.09,"cabai kopi padi",""],
+["1223","Kab. Labuhanbatu Utara","Sumatera Utara","B",0.55,2.4,99.77,"kopi sawit","logistik"],
+["1224","Kab. Nias Utara","Sumatera Utara","B",0.55,1.34,97.36,"karet kopi",""],
+["1225","Kab. Nias Barat","Sumatera Utara","B",0.55,1.01,97.47,"karet kopi padi",""],
+["1271","Kota Medan","Sumatera Utara","M",0.74,3.6,98.68,"","konveksi kuliner logistik",{"dem":0.95,"land":0.8}],
+["1272","Kota Pematangsiantar","Sumatera Utara","K",0.58,2.96,99.06,"",""],
+["1273","Kota Sibolga","Sumatera Utara","K",0.58,1.74,98.79,"",""],
+["1274","Kota Tanjungbalai","Sumatera Utara","K",0.58,2.97,99.8,"",""],
+["1275","Kota Binjai","Sumatera Utara","K",0.58,3.61,98.49,"",""],
+["1276","Kota Tebing Tinggi","Sumatera Utara","K",0.58,3.33,99.16,"tangkap",""],
+["1277","Kota Padangsidimpuan","Sumatera Utara","K",0.58,1.38,99.28,"",""],
+["1278","Kota Gunungsitoli","Sumatera Utara","K",0.58,1.26,97.61,"",""],
+["1301","Kab. Pesisir Selatan","Sumatera Barat","B",0.55,-1.68,100.78,"cabai sawit","logistik"],
+["1302","Kab. Solok","Sumatera Barat","B",0.55,-0.86,100.72,"cabai padi",""],
+["1303","Kab. Sijunjung","Sumatera Barat","B",0.55,-0.69,101.02,"kakao sawit","logistik"],
+["1304","Kab. Tanah Datar","Sumatera Barat","B",0.55,-0.44,100.56,"kakao sawit","logistik"],
+["1305","Kab. Padang Pariaman","Sumatera Barat","B",0.55,-0.59,100.21,"kakao kopi sawit","kuliner logistik"],
+["1306","Kab. Agam","Sumatera Barat","B",0.55,-0.28,100.28,"cabai kopi padi","wisata"],
+["1307","Kab. Lima Puluh Kota","Sumatera Barat","B",0.55,-0.11,100.59,"kakao sawit","logistik"],
+["1308","Kab. Pasaman","Sumatera Barat","B",0.55,0.32,100.1,"kopi sawit","logistik"],
+["1309","Kab. Kepulauan Mentawai","Sumatera Barat","R",0.55,-1.96,99.48,"cabai","wisata"],
+["1310","Kab. Dharmasraya","Sumatera Barat","B",0.55,-1.11,101.64,"kakao padi",""],
+["1311","Kab. Solok Selatan","Sumatera Barat","B",0.55,-1.43,101.21,"sawit","logistik"],
+["1312","Kab. Pasaman Barat","Sumatera Barat","B",0.55,0.18,99.72,"cabai kopi",""],
+["1371","Kota Padang","Sumatera Barat","K",0.58,-0.94,100.39,"tangkap","kuliner"],
+["1372","Kota Solok","Sumatera Barat","K",0.58,-0.79,100.65,"",""],
+["1373","Kota Sawahlunto","Sumatera Barat","K",0.58,-0.66,100.76,"",""],
+["1374","Kota Padang Panjang","Sumatera Barat","K",0.58,-0.47,100.4,"",""],
+["1375","Kota Bukittinggi","Sumatera Barat","K",0.58,-0.3,100.38,"","kuliner wisata"],
+["1376","Kota Payakumbuh","Sumatera Barat","K",0.58,-0.23,100.63,"",""],
+["1377","Kota Pariaman","Sumatera Barat","K",0.58,-0.61,100.14,"",""],
+["1401","Kab. Kampar","Riau","B",0.65,0.33,101.11,"minyak sawit tangkap","logistik"],
+["1402","Kab. Indragiri Hulu","Riau","B",0.65,-0.48,102.28,"minyak sawit tangkap","logistik"],
+["1403","Kab. Bengkalis","Riau","B",0.65,1.44,101.83,"karet minyak sawit tangkap","logistik"],
+["1404","Kab. Indragiri Hilir","Riau","B",0.65,-0.26,103.23,"sawit","logistik"],
+["1405","Kab. Pelalawan","Riau","B",0.65,0.19,102.19,"karet minyak sawit","logistik"],
+["1406","Kab. Rokan Hulu","Riau","B",0.65,0.88,100.46,"karet minyak sawit","logistik"],
+["1407","Kab. Rokan Hilir","Riau","B",0.65,1.81,100.71,"minyak sawit tangkap","logistik"],
+["1408","Kab. Siak","Riau","B",0.65,0.82,101.87,"karet minyak sawit","logistik"],
+["1409","Kab. Kuantan Singingi","Riau","B",0.65,-0.49,101.6,"sawit","logistik"],
+["1410","Kab. Kepulauan Meranti","Riau","R",0.65,1.01,102.69,"karet tangkap",""],
+["1471","Kota Pekanbaru","Riau","K",0.68,0.52,101.45,"","kuliner logistik"],
+["1472","Kota Dumai","Riau","K",0.68,1.67,101.42,"",""],
+["1501","Kab. Kerinci","Jambi","B",0.6,-2.01,101.41,"karet sawit","logistik"],
+["1502","Kab. Merangin","Jambi","B",0.6,-2.14,102.16,"karet sawit","logistik"],
+["1503","Kab. Sarolangun","Jambi","B",0.6,-2.31,102.66,"batubara sawit","logistik"],
+["1504","Kab. Batanghari","Jambi","B",0.6,-1.69,103.12,"karet sawit","logistik"],
+["1505","Kab. Muaro Jambi","Jambi","B",0.6,-1.67,103.62,"karet sawit","logistik"],
+["1506","Kab. Tanjung Jabung Barat","Jambi","B",0.6,-1.02,103.2,"minyak sawit","logistik"],
+["1507","Kab. Tanjung Jabung Timur","Jambi","B",0.6,-1.15,103.93,"karet sawit","logistik"],
+["1508","Kab. Bungo","Jambi","B",0.6,-1.51,101.99,"batubara karet sawit","logistik"],
+["1509","Kab. Tebo","Jambi","B",0.6,-1.36,102.34,"batubara karet","logistik"],
+["1571","Kota Jambi","Jambi","K",0.63,-1.61,103.61,"","kuliner"],
+["1572","Kota Sungai Penuh","Jambi","K",0.63,-2.06,101.41,"",""],
+["1601","Kab. Ogan Komering Ulu","Sumatera Selatan","B",0.68,-4.08,104.12,"karet padi",""],
+["1602","Kab. Ogan Komering Ilir","Sumatera Selatan","B",0.68,-3.48,105.06,"karet sawit","logistik"],
+["1603","Kab. Muara Enim","Sumatera Selatan","B",0.68,-3.59,104.03,"batubara karet padi","logistik"],
+["1604","Kab. Lahat","Sumatera Selatan","B",0.68,-3.86,103.39,"batubara karet sawit","logistik"],
+["1605","Kab. Musi Rawas","Sumatera Selatan","B",0.68,-3.16,103.09,"karet padi",""],
+["1606","Kab. Musi Banyuasin","Sumatera Selatan","B",0.68,-2.63,103.86,"gas minyak padi","logistik"],
+["1607","Kab. Banyuasin","Sumatera Selatan","B",0.68,-2.72,104.72,"sawit","logistik"],
+["1608","Kab. Ogan Komering Ulu Timur","Sumatera Selatan","B",0.68,-4.1,104.6,"karet padi",""],
+["1609","Kab. Ogan Komering Ulu Selatan","Sumatera Selatan","B",0.68,-4.59,103.91,"sawit","logistik"],
+["1610","Kab. Ogan Ilir","Sumatera Selatan","B",0.68,-3.33,104.69,"padi sawit","logistik"],
+["1611","Kab. Empat Lawang","Sumatera Selatan","B",0.68,-3.75,102.96,"karet sawit","logistik"],
+["1612","Kab. Penukal Abab Lematang Ilir","Sumatera Selatan","B",0.68,-3.23,104.01,"batubara minyak padi","logistik"],
+["1613","Kab. Musi Rawas Utara","Sumatera Selatan","B",0.68,-2.7,102.85,"karet",""],
+["1671","Kota Palembang","Sumatera Selatan","M",0.73,-2.98,104.76,"","konveksi kuliner logistik"],
+["1672","Kota Pagar Alam","Sumatera Selatan","K",0.72,-4.05,103.25,"",""],
+["1673","Kota Lubuk Linggau","Sumatera Selatan","K",0.72,-3.28,102.88,"",""],
+["1674","Kota Prabumulih","Sumatera Selatan","K",0.72,-3.45,104.24,"",""],
+["1701","Kab. Bengkulu Selatan","Bengkulu","B",0.49,-4.42,102.98,"karet sawit","logistik"],
+["1702","Kab. Rejang Lebong","Bengkulu","B",0.49,-3.44,102.64,"cabai kopi",""],
+["1703","Kab. Bengkulu Utara","Bengkulu","B",0.49,-3.46,102.07,"karet",""],
+["1704","Kab. Kaur","Bengkulu","B",0.49,-4.66,103.31,"kopi",""],
+["1705","Kab. Seluma","Bengkulu","B",0.49,-4.11,102.63,"karet sawit","logistik"],
+["1706","Kab. Mukomuko","Bengkulu","B",0.49,-2.7,101.35,"kopi sawit","logistik"],
+["1707","Kab. Lebong","Bengkulu","B",0.49,-3.15,102.25,"karet kopi",""],
+["1708","Kab. Kepahiang","Bengkulu","B",0.49,-3.63,102.62,"kopi",""],
+["1709","Kab. Bengkulu Tengah","Bengkulu","B",0.49,-3.68,102.37,"batubara karet sawit","logistik"],
+["1771","Kota Bengkulu","Bengkulu","K",0.52,-3.81,102.28,"tangkap","kuliner"],
+["1801","Kab. Lampung Selatan","Lampung","B",0.54,-5.56,105.53,"kopi padi",""],
+["1802","Kab. Lampung Tengah","Lampung","B",0.54,-4.96,105.22,"jagung sapi udang",""],
+["1803","Kab. Lampung Utara","Lampung","B",0.54,-4.8,104.81,"jagung kopi padi",""],
+["1804","Kab. Lampung Barat","Lampung","B",0.54,-5.04,104.25,"kopi",""],
+["1805","Kab. Tulang Bawang","Lampung","B",0.54,-4.32,105.47,"padi sapi",""],
+["1806","Kab. Tanggamus","Lampung","B",0.54,-5.46,104.7,"kopi padi",""],
+["1807","Kab. Lampung Timur","Lampung","B",0.54,-5.2,105.57,"kakao padi udang",""],
+["1808","Kab. Way Kanan","Lampung","B",0.54,-4.55,104.59,"kopi udang",""],
+["1809","Kab. Pesawaran","Lampung","B",0.54,-5.46,105.1,"jagung sapi",""],
+["1810","Kab. Pringsewu","Lampung","B",0.54,-5.35,104.96,"padi udang",""],
+["1811","Kab. Mesuji","Lampung","B",0.54,-4.02,105.37,"kopi padi",""],
+["1812","Kab. Tulang Bawang Barat","Lampung","B",0.54,-4.42,105.11,"padi sapi",""],
+["1813","Kab. Pesisir Barat","Lampung","B",0.54,-5.25,104.0,"kakao udang",""],
+["1871","Kota Bandar Lampung","Lampung","K",0.61,-5.41,105.26,"","kuliner logistik"],
+["1872","Kota Metro","Lampung","K",0.56,-5.12,105.31,"",""],
+["1901","Kab. Bangka","Kepulauan Bangka Belitung","B",0.72,-1.92,105.97,"karet sawit tangkap","logistik"],
+["1902","Kab. Belitung","Kepulauan Bangka Belitung","B",0.72,-2.83,107.65,"tangkap","wisata"],
+["1903","Kab. Bangka Selatan","Kepulauan Bangka Belitung","B",0.72,-2.79,106.37,"karet tangkap",""],
+["1904","Kab. Bangka Tengah","Kepulauan Bangka Belitung","B",0.72,-2.35,106.21,"karet sawit","logistik"],
+["1905","Kab. Bangka Barat","Kepulauan Bangka Belitung","B",0.72,-1.87,105.5,"sawit","logistik"],
+["1906","Kab. Belitung Timur","Kepulauan Bangka Belitung","B",0.72,-2.91,108.12,"sawit tangkap","logistik wisata"],
+["1971","Kota Pangkal Pinang","Kepulauan Bangka Belitung","K",0.75,-2.12,106.11,"tangkap","kuliner"],
+["2101","Kab. Bintan","Kepulauan Riau","B",0.77,0.96,104.93,"tangkap","wisata"],
+["2102","Kab. Karimun","Kepulauan Riau","B",0.65,0.85,103.5,"tangkap","wisata"],
+["2103","Kab. Natuna","Kepulauan Riau","B",0.65,3.54,108.33,"gas rumput tangkap","logistik"],
+["2104","Kab. Lingga","Kepulauan Riau","B",0.65,-0.2,104.54,"rumput",""],
+["2105","Kab. Kepulauan Anambas","Kepulauan Riau","R",0.65,3.16,106.12,"gas rumput tangkap","logistik"],
+["2171","Kota Batam","Kepulauan Riau","M",0.92,1.05,104.01,"","konveksi logistik"],
+["2172","Kota Tanjung Pinang","Kepulauan Riau","K",0.68,0.92,104.47,"tangkap",""],
+["3101","Kab. Kepulauan Seribu","DKI Jakarta","R",1.0,-5.75,106.58,"tangkap","wisata"],
+["3171","Kota Jakarta Pusat","DKI Jakarta","M",1.0,-6.18,106.84,"","konveksi kuliner logistik wisata",{"dem":1.3,"land":1.7}],
+["3172","Kota Jakarta Utara","DKI Jakarta","M",1.0,-6.13,106.88,"","logistik",{"dem":1.3,"land":1.7}],
+["3173","Kota Jakarta Barat","DKI Jakarta","M",1.0,-6.17,106.78,"","konveksi logistik",{"dem":1.3,"land":1.7}],
+["3174","Kota Jakarta Selatan","DKI Jakarta","M",1.0,-6.26,106.82,"","kuliner logistik",{"dem":1.3,"land":1.7}],
+["3175","Kota Jakarta Timur","DKI Jakarta","M",1.0,-6.25,106.89,"","logistik",{"dem":1.3,"land":1.7}],
+["3201","Kab. Bogor","Jawa Barat","B",0.9,-6.55,106.77,"ayam lele","konveksi wisata",{"dem":1.05,"land":1}],
+["3202","Kab. Sukabumi","Jawa Barat","B",0.66,-7.02,106.75,"cabai padi",""],
+["3203","Kab. Cianjur","Jawa Barat","B",0.59,-7.03,107.14,"cabai padi",""],
+["3204","Kab. Bandung","Jawa Barat","B",0.7,-7.04,107.66,"kopi lele","konveksi"],
+["3205","Kab. Garut","Jawa Barat","B",0.43,-7.27,107.86,"cabai kopi sapi","kuliner wisata"],
+["3206","Kab. Tasikmalaya","Jawa Barat","B",0.49,-7.42,108.14,"padi","konveksi"],
+["3207","Kab. Ciamis","Jawa Barat","B",0.41,-7.28,108.41,"kopi lele",""],
+["3208","Kab. Kuningan","Jawa Barat","B",0.41,-6.98,108.54,"ayam",""],
+["3209","Kab. Cirebon","Jawa Barat","B",0.51,-6.76,108.55,"cabai padi","batik mebel"],
+["3210","Kab. Majalengka","Jawa Barat","B",0.43,-6.84,108.28,"lele padi",""],
+["3211","Kab. Sumedang","Jawa Barat","B",0.68,-6.84,107.96,"ayam cabai kopi",""],
+["3212","Kab. Indramayu","Jawa Barat","B",0.53,-6.43,108.23,"bandeng minyak padi tangkap","logistik"],
+["3213","Kab. Subang","Jawa Barat","B",0.65,-6.48,107.74,"ayam kopi padi",""],
+["3214","Kab. Purwakarta","Jawa Barat","B",0.95,-6.6,107.45,"cabai kopi",""],
+["3215","Kab. Karawang","Jawa Barat","B",1.04,-6.26,107.38,"gas padi","logistik"],
+["3216","Kab. Bekasi","Jawa Barat","B",1.03,-6.24,107.13,"ayam cabai gas","konveksi logistik"],
+["3217","Kab. Bandung Barat","Jawa Barat","B",0.72,-6.88,107.45,"cabai kopi","wisata"],
+["3218","Kab. Pangandaran","Jawa Barat","B",0.41,-7.63,108.55,"kopi lele","wisata"],
+["3271","Kota Bogor","Jawa Barat","K",0.95,-6.59,106.8,"",""],
+["3272","Kota Sukabumi","Jawa Barat","K",0.58,-6.94,106.93,"",""],
+["3273","Kota Bandung","Jawa Barat","M",0.83,-6.92,107.63,"","konveksi kuliner logistik wisata"],
+["3274","Kota Cirebon","Jawa Barat","K",0.5,-6.73,108.56,"","batik kuliner"],
+["3275","Kota Bekasi","Jawa Barat","M",1.05,-6.28,106.97,"","konveksi logistik"],
+["3276","Kota Depok","Jawa Barat","M",0.96,-6.39,106.81,"","logistik"],
+["3277","Kota Cimahi","Jawa Barat","K",0.74,-6.89,107.54,"",""],
+["3278","Kota Tasikmalaya","Jawa Barat","K",0.51,-7.35,108.22,"","konveksi"],
+["3279","Kota Banjar","Jawa Barat","K",0.41,-7.38,108.56,"",""],
+["3301","Kab. Cilacap","Jawa Tengah","B",0.51,-7.52,108.97,"cabai tembakau",""],
+["3302","Kab. Banyumas","Jawa Tengah","B",0.4,-7.46,109.21,"padi","batik kuliner"],
+["3303","Kab. Purbalingga","Jawa Tengah","B",0.4,-7.35,109.39,"padi sapi tembakau",""],
+["3304","Kab. Banjarnegara","Jawa Tengah","B",0.4,-7.36,109.66,"cabai padi","wisata"],
+["3305","Kab. Kebumen","Jawa Tengah","B",0.4,-7.68,109.63,"ayam",""],
+["3306","Kab. Purworejo","Jawa Tengah","B",0.4,-7.73,109.95,"padi sapi",""],
+["3307","Kab. Wonosobo","Jawa Tengah","B",0.4,-7.4,109.91,"ayam padi","wisata"],
+["3308","Kab. Magelang","Jawa Tengah","B",0.4,-7.5,110.24,"sapi tembakau","wisata"],
+["3309","Kab. Boyolali","Jawa Tengah","B",0.4,-7.45,110.65,"ayam sapi","",{"dem":0.7,"land":0.5}],
+["3310","Kab. Klaten","Jawa Tengah","B",0.4,-7.69,110.63,"padi tembakau","batik konveksi mebel"],
+["3311","Kab. Sukoharjo","Jawa Tengah","B",0.4,-7.66,110.82,"ayam cabai","batik konveksi mebel"],
+["3312","Kab. Wonogiri","Jawa Tengah","B",0.4,-7.9,111.03,"ayam cabai sapi",""],
+["3313","Kab. Karanganyar","Jawa Tengah","B",0.4,-7.6,110.99,"cabai padi",""],
+["3314","Kab. Sragen","Jawa Tengah","B",0.4,-7.4,110.96,"ayam sapi","batik"],
+["3315","Kab. Grobogan","Jawa Tengah","B",0.4,-7.1,110.88,"cabai padi",""],
+["3316","Kab. Blora","Jawa Tengah","B",0.4,-7.04,111.39,"cabai minyak padi sapi","logistik mebel"],
+["3317","Kab. Rembang","Jawa Tengah","B",0.4,-6.75,111.45,"ayam tembakau","batik"],
+["3318","Kab. Pati","Jawa Tengah","B",0.4,-6.73,111.07,"cabai padi tembakau",""],
+["3319","Kab. Kudus","Jawa Tengah","B",0.5,-6.8,110.85,"tembakau","konveksi mebel"],
+["3320","Kab. Jepara","Jawa Tengah","B",0.48,-6.62,110.73,"tangkap","mebel"],
+["3321","Kab. Demak","Jawa Tengah","B",0.58,-6.91,110.64,"sapi",""],
+["3322","Kab. Semarang","Jawa Tengah","B",0.54,-7.28,110.48,"ayam padi","wisata"],
+["3323","Kab. Temanggung","Jawa Tengah","B",0.4,-7.27,110.13,"kopi tembakau",""],
+["3324","Kab. Kendal","Jawa Tengah","B",0.52,-7.01,110.15,"cabai tembakau",""],
+["3325","Kab. Batang","Jawa Tengah","B",0.4,-7.01,109.85,"ayam padi",""],
+["3326","Kab. Pekalongan","Jawa Tengah","B",0.4,-7.0,109.61,"cabai padi","batik konveksi"],
+["3327","Kab. Pemalang","Jawa Tengah","B",0.4,-6.99,109.42,"padi sapi tembakau",""],
+["3328","Kab. Tegal","Jawa Tengah","B",0.4,-6.99,109.15,"padi sapi",""],
+["3329","Kab. Brebes","Jawa Tengah","B",0.4,-7.02,108.94,"bawang padi",""],
+["3371","Kota Magelang","Jawa Tengah","K",0.42,-7.48,110.22,"",""],
+["3372","Kota Surakarta","Jawa Tengah","K",0.42,-7.57,110.82,"","batik kuliner mebel wisata"],
+["3373","Kota Salatiga","Jawa Tengah","K",0.49,-7.34,110.5,"",""],
+["3374","Kota Semarang","Jawa Tengah","M",0.64,-7.01,110.41,"","kuliner logistik",{"dem":0.95,"land":0.85}],
+["3375","Kota Pekalongan","Jawa Tengah","K",0.42,-6.89,109.67,"","batik konveksi"],
+["3376","Kota Tegal","Jawa Tengah","K",0.42,-6.88,109.12,"",""],
+["3401","Kab. Kulon Progo","DI Yogyakarta","B",0.44,-7.85,110.16,"padi sapi",""],
+["3402","Kab. Bantul","DI Yogyakarta","B",0.44,-7.9,110.35,"padi","batik wisata"],
+["3403","Kab. Gunungkidul","DI Yogyakarta","B",0.43,-7.97,110.61,"jagung sapi","wisata"],
+["3404","Kab. Sleman","DI Yogyakarta","B",0.46,-7.72,110.37,"lele padi","wisata"],
+["3471","Kota Yogyakarta","DI Yogyakarta","K",0.49,-7.8,110.37,"","batik kuliner wisata"],
+["3501","Kab. Pacitan","Jawa Timur","B",0.43,-8.15,111.17,"bandeng tembakau",""],
+["3502","Kab. Ponorogo","Jawa Timur","B",0.43,-7.91,111.48,"tembakau udang",""],
+["3503","Kab. Trenggalek","Jawa Timur","B",0.43,-8.13,111.65,"bandeng sapi udang",""],
+["3504","Kab. Tulungagung","Jawa Timur","B",0.43,-8.1,111.9,"bandeng padi",""],
+["3505","Kab. Blitar","Jawa Timur","B",0.43,-8.12,112.22,"bandeng padi tembakau",""],
+["3506","Kab. Kediri","Jawa Timur","B",0.43,-7.81,112.09,"padi",""],
+["3507","Kab. Malang","Jawa Timur","B",0.64,-8.09,112.63,"padi sapi tembakau","wisata"],
+["3508","Kab. Lumajang","Jawa Timur","B",0.43,-8.13,113.19,"sapi tembakau udang",""],
+["3509","Kab. Jember","Jawa Timur","B",0.56,-8.2,113.64,"kopi padi tembakau",""],
+["3510","Kab. Banyuwangi","Jawa Timur","B",0.55,-8.32,114.25,"tangkap udang","wisata"],
+["3511","Kab. Bondowoso","Jawa Timur","B",0.43,-7.92,113.88,"bandeng sapi",""],
+["3512","Kab. Situbondo","Jawa Timur","B",0.43,-7.75,113.93,"bandeng",""],
+["3513","Kab. Probolinggo","Jawa Timur","B",0.58,-7.82,113.33,"bawang sapi","wisata"],
+["3514","Kab. Pasuruan","Jawa Timur","B",0.91,-7.71,112.84,"ayam sapi","mebel"],
+["3515","Kab. Sidoarjo","Jawa Timur","B",0.92,-7.44,112.67,"bandeng udang","konveksi"],
+["3516","Kab. Mojokerto","Jawa Timur","B",0.91,-7.52,112.48,"bandeng sapi",""],
+["3517","Kab. Jombang","Jawa Timur","B",0.56,-7.54,112.26,"bandeng",""],
+["3518","Kab. Nganjuk","Jawa Timur","B",0.43,-7.6,111.96,"padi tembakau udang",""],
+["3519","Kab. Madiun","Jawa Timur","B",0.43,-7.62,111.59,"bandeng padi",""],
+["3520","Kab. Magetan","Jawa Timur","B",0.43,-7.65,111.38,"padi sapi udang",""],
+["3521","Kab. Ngawi","Jawa Timur","B",0.43,-7.46,111.38,"padi udang",""],
+["3522","Kab. Bojonegoro","Jawa Timur","B",0.46,-7.21,111.86,"gas minyak padi sapi tembakau","logistik"],
+["3523","Kab. Tuban","Jawa Timur","B",0.56,-6.95,111.91,"minyak padi udang","batik logistik"],
+["3524","Kab. Lamongan","Jawa Timur","B",0.58,-7.11,112.32,"bandeng padi tangkap","kuliner"],
+["3525","Kab. Gresik","Jawa Timur","B",0.92,-7.04,112.55,"bandeng gas padi","logistik"],
+["3526","Kab. Bangkalan","Jawa Timur","B",0.43,-7.05,112.9,"bandeng gas padi tembakau","batik logistik"],
+["3527","Kab. Sampang","Jawa Timur","B",0.43,-7.08,113.25,"tembakau udang",""],
+["3528","Kab. Pamekasan","Jawa Timur","B",0.43,-7.1,113.5,"bandeng udang","batik"],
+["3529","Kab. Sumenep","Jawa Timur","B",0.43,-6.99,114.08,"gas rumput sapi tembakau","logistik"],
+["3571","Kota Kediri","Jawa Timur","K",0.45,-7.82,112.02,"",""],
+["3572","Kota Blitar","Jawa Timur","K",0.45,-8.1,112.16,"",""],
+["3573","Kota Malang","Jawa Timur","K",0.65,-7.97,112.63,"","kuliner wisata"],
+["3574","Kota Probolinggo","Jawa Timur","K",0.45,-7.77,113.21,"",""],
+["3575","Kota Pasuruan","Jawa Timur","K",0.63,-7.65,112.9,"","mebel"],
+["3576","Kota Mojokerto","Jawa Timur","K",0.56,-7.47,112.44,"",""],
+["3577","Kota Madiun","Jawa Timur","K",0.45,-7.63,111.53,"",""],
+["3578","Kota Surabaya","Jawa Timur","M",0.93,-7.27,112.73,"","konveksi kuliner logistik",{"dem":1.15,"land":1.2}],
+["3579","Kota Batu","Jawa Timur","K",0.61,-7.86,112.54,"","wisata"],
+["3601","Kab. Pandeglang","Banten","B",0.59,-6.46,105.91,"padi","wisata"],
+["3602","Kab. Lebak","Banten","B",0.6,-6.59,106.21,"padi tangkap",""],
+["3603","Kab. Tangerang","Banten","B",0.94,-6.17,106.52,"padi tangkap",""],
+["3604","Kab. Serang","Banten","B",0.9,-6.14,106.18,"padi tangkap",""],
+["3671","Kota Tangerang","Banten","M",0.94,-6.19,106.66,"","konveksi logistik"],
+["3672","Kota Cilegon","Banten","K",0.95,-6.01,106.03,"","logistik"],
+["3673","Kota Serang","Banten","K",0.81,-6.13,106.17,"tangkap",""],
+["3674","Kota Tangerang Selatan","Banten","M",0.92,-6.3,106.71,"","logistik"],
+["5101","Kab. Jembrana","Bali","B",0.56,-8.34,114.66,"padi rumput",""],
+["5102","Kab. Tabanan","Bali","B",0.56,-8.47,115.1,"kopi padi","wisata"],
+["5103","Kab. Badung","Bali","B",0.65,-8.58,115.19,"","kuliner wisata",{"dem":1.1,"land":1.4}],
+["5104","Kab. Gianyar","Bali","B",0.6,-8.51,115.29,"","mebel wisata"],
+["5105","Kab. Klungkung","Bali","B",0.56,-8.58,115.44,"kopi padi","wisata"],
+["5106","Kab. Bangli","Bali","B",0.56,-8.31,115.33,"kopi padi","wisata"],
+["5107","Kab. Karangasem","Bali","B",0.56,-8.42,115.53,"padi","wisata"],
+["5108","Kab. Buleleng","Bali","B",0.56,-8.18,115.05,"kopi","wisata"],
+["5171","Kota Denpasar","Bali","K",0.61,-8.66,115.22,"","konveksi wisata"],
+["5201","Kab. Lombok Barat","Nusa Tenggara Barat","B",0.48,-8.62,116.13,"padi sapi tembakau","wisata"],
+["5202","Kab. Lombok Tengah","Nusa Tenggara Barat","B",0.48,-8.7,116.29,"padi","wisata"],
+["5203","Kab. Lombok Timur","Nusa Tenggara Barat","B",0.48,-8.62,116.51,"rumput tembakau","wisata"],
+["5204","Kab. Sumbawa","Nusa Tenggara Barat","B",0.48,-8.63,117.45,"jagung sapi",""],
+["5205","Kab. Dompu","Nusa Tenggara Barat","B",0.48,-8.5,118.3,"jagung rumput tembakau",""],
+["5206","Kab. Bima","Nusa Tenggara Barat","B",0.48,-8.54,118.72,"padi sapi tembakau",""],
+["5207","Kab. Sumbawa Barat","Nusa Tenggara Barat","B",0.48,-8.76,116.86,"padi tembakau",""],
+["5208","Kab. Lombok Utara","Nusa Tenggara Barat","B",0.48,-8.34,116.26,"padi rumput","wisata"],
+["5271","Kota Mataram","Nusa Tenggara Barat","K",0.51,-8.59,116.11,"","kuliner wisata"],
+["5272","Kota Bima","Nusa Tenggara Barat","K",0.51,-8.47,118.76,"",""],
+["5301","Kab. Kupang","Nusa Tenggara Timur","R",0.43,-10.04,123.8,"sapi tangkap",""],
+["5302","Kab. Timor Tengah Selatan","Nusa Tenggara Timur","R",0.43,-9.82,124.45,"sapi",""],
+["5303","Kab. Timor Tengah Utara","Nusa Tenggara Timur","R",0.43,-9.41,124.55,"tangkap",""],
+["5304","Kab. Belu","Nusa Tenggara Timur","R",0.43,-9.14,124.98,"jagung rumput",""],
+["5305","Kab. Alor","Nusa Tenggara Timur","R",0.43,-8.29,124.49,"jagung sapi",""],
+["5306","Kab. Flores Timur","Nusa Tenggara Timur","R",0.43,-8.36,123.04,"rumput",""],
+["5307","Kab. Sikka","Nusa Tenggara Timur","R",0.43,-8.63,122.23,"jagung tangkap",""],
+["5308","Kab. Ende","Nusa Tenggara Timur","R",0.43,-8.73,121.73,"jagung tangkap","wisata"],
+["5309","Kab. Ngada","Nusa Tenggara Timur","R",0.43,-8.75,121.01,"jagung tangkap",""],
+["5310","Kab. Manggarai","Nusa Tenggara Timur","R",0.43,-8.58,120.42,"kopi",""],
+["5311","Kab. Sumba Timur","Nusa Tenggara Timur","R",0.43,-9.89,120.28,"rumput sapi",""],
+["5312","Kab. Sumba Barat","Nusa Tenggara Timur","R",0.43,-9.63,119.41,"sapi tangkap",""],
+["5313","Kab. Lembata","Nusa Tenggara Timur","R",0.43,-8.36,123.55,"kopi rumput",""],
+["5314","Kab. Rote Ndao","Nusa Tenggara Timur","R",0.43,-10.75,123.08,"jagung sapi tangkap",""],
+["5315","Kab. Manggarai Barat","Nusa Tenggara Timur","R",0.43,-8.58,120.14,"tangkap","wisata"],
+["5316","Kab. Nagekeo","Nusa Tenggara Timur","R",0.43,-8.75,121.26,"jagung rumput",""],
+["5317","Kab. Sumba Tengah","Nusa Tenggara Timur","R",0.43,-9.54,119.62,"jagung sapi tangkap",""],
+["5318","Kab. Sumba Barat Daya","Nusa Tenggara Timur","R",0.43,-9.54,119.18,"jagung sapi tangkap","wisata"],
+["5319","Kab. Manggarai Timur","Nusa Tenggara Timur","R",0.43,-8.58,120.65,"jagung tangkap",""],
+["5320","Kab. Sabu Raijua","Nusa Tenggara Timur","R",0.43,-10.55,121.85,"rumput sapi tangkap",""],
+["5321","Kab. Malaka","Nusa Tenggara Timur","R",0.43,-9.57,124.86,"sapi tangkap",""],
+["5371","Kota Kupang","Nusa Tenggara Timur","K",0.45,-10.18,123.6,"tangkap","kuliner"],
+["6101","Kab. Sambas","Kalimantan Barat","B",0.53,1.34,109.21,"karet sawit","logistik"],
+["6102","Kab. Mempawah","Kalimantan Barat","B",0.53,0.36,109.09,"karet sawit","logistik"],
+["6103","Kab. Sanggau","Kalimantan Barat","B",0.53,0.24,110.41,"karet sawit","logistik"],
+["6104","Kab. Ketapang","Kalimantan Barat","B",0.53,-1.72,110.54,"karet sawit","logistik"],
+["6105","Kab. Sintang","Kalimantan Barat","B",0.53,0.07,111.76,"karet sawit","logistik"],
+["6106","Kab. Kapuas Hulu","Kalimantan Barat","B",0.53,0.65,112.41,"karet padi",""],
+["6107","Kab. Bengkayang","Kalimantan Barat","B",0.53,0.91,109.48,"karet padi",""],
+["6108","Kab. Landak","Kalimantan Barat","B",0.53,0.51,109.7,"karet sawit","logistik"],
+["6109","Kab. Sekadau","Kalimantan Barat","B",0.53,-0.02,110.95,"padi sawit","logistik"],
+["6110","Kab. Melawi","Kalimantan Barat","B",0.53,-0.55,111.76,"padi sawit","logistik"],
+["6111","Kab. Kayong Utara","Kalimantan Barat","B",0.53,-1.1,109.83,"karet padi",""],
+["6112","Kab. Kubu Raya","Kalimantan Barat","B",0.53,-0.31,109.4,"sawit","logistik"],
+["6171","Kota Pontianak","Kalimantan Barat","K",0.58,-0.03,109.34,"","kuliner"],
+["6172","Kota Singkawang","Kalimantan Barat","K",0.56,0.91,109.01,"",""],
+["6201","Kab. Kotawaringin Barat","Kalimantan Tengah","B",0.64,-2.52,111.69,"karet",""],
+["6202","Kab. Kotawaringin Timur","Kalimantan Tengah","B",0.64,-2.18,112.77,"sawit","logistik"],
+["6203","Kab. Kapuas","Kalimantan Tengah","B",0.64,-2.41,114.38,"batubara sawit","logistik"],
+["6204","Kab. Barito Selatan","Kalimantan Tengah","B",0.64,-1.73,114.94,"batubara karet sawit","logistik"],
+["6205","Kab. Barito Utara","Kalimantan Tengah","B",0.64,-1.03,115.08,"batubara karet","logistik"],
+["6206","Kab. Katingan","Kalimantan Tengah","B",0.64,-1.64,112.99,"karet sawit","logistik"],
+["6207","Kab. Seruyan","Kalimantan Tengah","B",0.64,-2.14,112.14,"karet",""],
+["6208","Kab. Sukamara","Kalimantan Tengah","B",0.64,-2.56,111.14,"karet sawit","logistik"],
+["6209","Kab. Lamandau","Kalimantan Tengah","B",0.64,-1.89,111.39,"karet sawit","logistik"],
+["6210","Kab. Gunung Mas","Kalimantan Tengah","B",0.64,-1.13,113.6,"karet sawit","logistik"],
+["6211","Kab. Pulang Pisau","Kalimantan Tengah","B",0.64,-2.63,114.05,"karet sawit","logistik"],
+["6212","Kab. Murung Raya","Kalimantan Tengah","B",0.64,-0.48,114.49,"batubara karet sawit","logistik"],
+["6213","Kab. Barito Timur","Kalimantan Tengah","B",0.64,-1.96,115.18,"batubara karet sawit","logistik"],
+["6271","Kota Palangkaraya","Kalimantan Tengah","K",0.65,-2.06,113.83,"","kuliner"],
+["6301","Kab. Tanah Laut","Kalimantan Selatan","B",0.65,-3.78,114.81,"batubara karet","logistik"],
+["6302","Kab. Kotabaru","Kalimantan Selatan","B",0.65,-3.2,116.16,"batubara karet padi sawit","logistik"],
+["6303","Kab. Banjar","Kalimantan Selatan","B",0.65,-3.36,114.86,"batubara karet sawit","logistik"],
+["6304","Kab. Barito Kuala","Kalimantan Selatan","B",0.65,-3.12,114.61,"padi sawit","logistik"],
+["6305","Kab. Tapin","Kalimantan Selatan","B",0.65,-2.96,115.11,"batubara karet padi","logistik"],
+["6306","Kab. Hulu Sungai Selatan","Kalimantan Selatan","B",0.65,-2.75,115.22,"karet sawit","logistik"],
+["6307","Kab. Hulu Sungai Tengah","Kalimantan Selatan","B",0.65,-2.6,115.4,"batubara karet","logistik"],
+["6308","Kab. Hulu Sungai Utara","Kalimantan Selatan","B",0.65,-2.44,115.21,"karet padi",""],
+["6309","Kab. Tabalong","Kalimantan Selatan","B",0.65,-2.11,115.42,"batubara karet sawit","logistik"],
+["6310","Kab. Tanah Bumbu","Kalimantan Selatan","B",0.65,-3.52,115.78,"batubara sawit","logistik"],
+["6311","Kab. Balangan","Kalimantan Selatan","B",0.65,-2.35,115.52,"batubara karet","logistik"],
+["6371","Kota Banjarmasin","Kalimantan Selatan","K",0.67,-3.32,114.59,"","kuliner"],
+["6372","Kota Banjarbaru","Kalimantan Selatan","K",0.68,-3.46,114.8,"",""],
+["6401","Kab. Paser","Kalimantan Timur","B",0.66,-1.79,116.16,"batubara sawit","logistik"],
+["6402","Kab. Kutai Kartanegara","Kalimantan Timur","B",0.71,-0.31,116.82,"batubara gas minyak sawit","logistik"],
+["6403","Kab. Berau","Kalimantan Timur","B",0.66,1.88,117.68,"batubara sawit","logistik"],
+["6407","Kab. Kutai Barat","Kalimantan Timur","B",0.66,-0.38,115.81,"batubara sawit tangkap","logistik"],
+["6408","Kab. Kutai Timur","Kalimantan Timur","B",0.73,0.81,117.33,"batubara sawit","logistik"],
+["6409","Kab. Penajam Paser Utara","Kalimantan Timur","B",0.66,-1.24,116.64,"minyak sawit","logistik"],
+["6411","Kab. Mahakam Ulu","Kalimantan Timur","B",0.66,0.58,114.9,"sawit tangkap","logistik"],
+["6471","Kota Balikpapan","Kalimantan Timur","K",0.71,-1.23,116.86,"","kuliner logistik",{"dem":1.1,"land":1.1}],
+["6472","Kota Samarinda","Kalimantan Timur","K",0.69,-0.5,117.15,"batubara","kuliner logistik"],
+["6474","Kota Bontang","Kalimantan Timur","K",0.71,0.13,117.48,"gas tangkap","logistik"],
+["6501","Kab. Bulungan","Kalimantan Utara","R",0.66,2.94,117.19,"batubara sawit tangkap","logistik"],
+["6502","Kab. Malinau","Kalimantan Utara","R",0.66,3.01,116.1,"batubara tangkap udang","logistik"],
+["6503","Kab. Nunukan","Kalimantan Utara","R",0.66,3.97,116.45,"sawit udang","logistik"],
+["6504","Kab. Tana Tidung","Kalimantan Utara","R",0.66,3.57,117.07,"sawit tangkap udang","logistik"],
+["6571","Kota Tarakan","Kalimantan Utara","K",0.7,3.32,117.6,"minyak tangkap udang","logistik"],
+["7101","Kab. Bolaang Mongondow","Sulawesi Utara","B",0.7,0.74,124.11,"jagung tangkap",""],
+["7102","Kab. Minahasa","Sulawesi Utara","B",0.7,1.25,124.84,"cengkeh",""],
+["7103","Kab. Kepulauan Sangihe","Sulawesi Utara","R",0.7,3.57,125.55,"jagung",""],
+["7104","Kab. Kepulauan Talaud","Sulawesi Utara","R",0.7,4.19,126.78,"cengkeh jagung",""],
+["7105","Kab. Minahasa Selatan","Sulawesi Utara","B",0.7,1.1,124.52,"cengkeh",""],
+["7106","Kab. Minahasa Utara","Sulawesi Utara","B",0.7,1.57,124.99,"jagung tangkap",""],
+["7107","Kab. Minahasa Tenggara","Sulawesi Utara","B",0.7,1.01,124.74,"cengkeh jagung",""],
+["7108","Kab. Bolaang Mongondow Utara","Sulawesi Utara","B",0.7,0.88,123.39,"cengkeh jagung",""],
+["7109","Kab. Kep. Siau Tagulandang Biaro","Sulawesi Utara","R",0.7,2.58,125.39,"cengkeh tangkap",""],
+["7110","Kab. Bolaang Mongondow Timur","Sulawesi Utara","B",0.7,0.72,124.51,"cengkeh jagung tangkap",""],
+["7111","Kab. Bolaang Mongondow Selatan","Sulawesi Utara","B",0.7,0.4,123.96,"cengkeh",""],
+["7171","Kota Manado","Sulawesi Utara","K",0.7,1.5,124.85,"tangkap","kuliner wisata"],
+["7172","Kota Bitung","Sulawesi Utara","K",0.73,1.46,125.17,"",""],
+["7173","Kota Tomohon","Sulawesi Utara","K",0.73,1.32,124.83,"",""],
+["7174","Kota Kotamobagu","Sulawesi Utara","K",0.73,0.73,124.32,"tangkap",""],
+["7201","Kab. Banggai","Sulawesi Tengah","B",0.54,-1.0,122.69,"gas kakao tangkap","logistik"],
+["7202","Kab. Poso","Sulawesi Tengah","B",0.54,-1.63,120.6,"jagung kakao",""],
+["7203","Kab. Donggala","Sulawesi Tengah","B",0.54,-0.46,119.8,"kakao tangkap",""],
+["7204","Kab. Toli-Toli","Sulawesi Tengah","B",0.54,0.94,120.64,"jagung tangkap",""],
+["7205","Kab. Buol","Sulawesi Tengah","B",0.54,1.07,121.53,"jagung kakao",""],
+["7206","Kab. Morowali","Sulawesi Tengah","B",0.68,-2.82,122.18,"","logistik"],
+["7207","Kab. Banggai Kepulauan","Sulawesi Tengah","R",0.54,-1.4,123.16,"jagung kakao",""],
+["7208","Kab. Parigi Moutong","Sulawesi Tengah","B",0.54,-0.02,120.43,"kakao tangkap",""],
+["7209","Kab. Tojo Una Una","Sulawesi Tengah","B",0.54,-0.84,121.67,"tangkap",""],
+["7210","Kab. Sigi","Sulawesi Tengah","B",0.54,-1.23,119.94,"kakao tangkap",""],
+["7211","Kab. Banggai Laut","Sulawesi Tengah","B",0.54,-1.75,123.49,"kakao tangkap",""],
+["7212","Kab. Morowali Utara","Sulawesi Tengah","B",0.54,-1.92,121.39,"jagung tangkap",""],
+["7271","Kota Palu","Sulawesi Tengah","K",0.57,-0.86,119.87,"","kuliner"],
+["7301","Kab. Kepulauan Selayar","Sulawesi Selatan","R",0.68,-6.52,120.71,"sapi udang","wisata"],
+["7302","Kab. Bulukumba","Sulawesi Selatan","B",0.68,-5.44,120.24,"kakao sapi udang","wisata"],
+["7303","Kab. Bantaeng","Sulawesi Selatan","B",0.68,-5.51,119.98,"kopi sapi udang",""],
+["7304","Kab. Jeneponto","Sulawesi Selatan","B",0.68,-5.59,119.74,"kakao sapi",""],
+["7305","Kab. Takalar","Sulawesi Selatan","B",0.68,-5.39,119.43,"sapi udang",""],
+["7306","Kab. Gowa","Sulawesi Selatan","B",0.68,-5.3,119.59,"sapi",""],
+["7307","Kab. Sinjai","Sulawesi Selatan","B",0.68,-5.2,120.17,"kopi sapi",""],
+["7308","Kab. Bone","Sulawesi Selatan","B",0.68,-4.64,120.2,"padi rumput sapi",""],
+["7309","Kab. Maros","Sulawesi Selatan","B",0.68,-5.0,119.66,"rumput sapi",""],
+["7310","Kab. Pangkajene dan Kepulauan","Sulawesi Selatan","R",0.68,-5.03,119.28,"kakao padi rumput",""],
+["7311","Kab. Barru","Sulawesi Selatan","B",0.68,-4.41,119.66,"kakao padi sapi",""],
+["7312","Kab. Soppeng","Sulawesi Selatan","B",0.68,-4.34,119.93,"kakao udang",""],
+["7313","Kab. Wajo","Sulawesi Selatan","B",0.68,-4.02,120.17,"gas kopi rumput sapi","logistik"],
+["7314","Kab. Sidenreng Rappang","Sulawesi Selatan","B",0.68,-3.89,119.88,"kakao padi",""],
+["7315","Kab. Pinrang","Sulawesi Selatan","B",0.68,-3.73,119.6,"bandeng kakao padi udang",""],
+["7316","Kab. Enrekang","Sulawesi Selatan","B",0.68,-3.47,119.85,"rumput sapi",""],
+["7317","Kab. Luwu","Sulawesi Selatan","B",0.68,-3.21,120.24,"kakao rumput udang",""],
+["7318","Kab. Tana Toraja","Sulawesi Selatan","B",0.68,-3.11,119.78,"padi udang","wisata"],
+["7322","Kab. Luwu Utara","Sulawesi Selatan","B",0.68,-2.6,120.32,"padi",""],
+["7324","Kab. Luwu Timur","Sulawesi Selatan","B",0.68,-2.57,120.98,"kakao padi sapi",""],
+["7326","Kab. Toraja Utara","Sulawesi Selatan","B",0.68,-2.94,119.89,"kopi","wisata"],
+["7371","Kota Makassar","Sulawesi Selatan","M",0.72,-5.14,119.44,"","kuliner logistik"],
+["7372","Kota Parepare","Sulawesi Selatan","K",0.71,-4.02,119.64,"",""],
+["7373","Kota Palopo","Sulawesi Selatan","K",0.71,-2.99,120.18,"",""],
+["7401","Kab. Kolaka","Sulawesi Tenggara","B",0.57,-4.15,121.52,"kakao rumput","logistik"],
+["7402","Kab. Konawe","Sulawesi Tenggara","B",0.57,-3.88,122.17,"jagung tangkap",""],
+["7403","Kab. Muna","Sulawesi Tenggara","B",0.57,-4.93,122.62,"kakao tangkap",""],
+["7404","Kab. Buton","Sulawesi Tenggara","B",0.57,-5.34,122.95,"rumput tangkap",""],
+["7405","Kab. Konawe Selatan","Sulawesi Tenggara","B",0.57,-4.25,122.38,"jagung tangkap",""],
+["7406","Kab. Bombana","Sulawesi Tenggara","B",0.57,-4.85,121.86,"jagung rumput tangkap",""],
+["7407","Kab. Wakatobi","Sulawesi Tenggara","B",0.57,-5.54,123.75,"kakao rumput","wisata"],
+["7408","Kab. Kolaka Utara","Sulawesi Tenggara","B",0.57,-3.31,121.04,"jagung rumput",""],
+["7409","Kab. Konawe Utara","Sulawesi Tenggara","B",0.57,-3.53,122.22,"jagung kakao",""],
+["7410","Kab. Buton Utara","Sulawesi Tenggara","B",0.57,-4.73,123.05,"jagung kakao",""],
+["7411","Kab. Kolaka Timur","Sulawesi Tenggara","B",0.57,-4.06,121.82,"rumput tangkap",""],
+["7412","Kab. Konawe Kepulauan","Sulawesi Tenggara","R",0.57,-4.09,123.09,"jagung tangkap",""],
+["7413","Kab. Muna Barat","Sulawesi Tenggara","B",0.57,-4.8,122.46,"kakao",""],
+["7414","Kab. Buton Tengah","Sulawesi Tenggara","B",0.57,-5.33,122.42,"kakao rumput tangkap",""],
+["7415","Kab. Buton Selatan","Sulawesi Tenggara","B",0.57,-5.68,122.62,"kakao rumput",""],
+["7471","Kota Kendari","Sulawesi Tenggara","K",0.6,-3.98,122.55,"tangkap","kuliner"],
+["7472","Kota Bau Bau","Sulawesi Tenggara","K",0.6,-5.44,122.63,"tangkap",""],
+["7501","Kab. Gorontalo","Gorontalo","B",0.6,0.63,122.83,"jagung tangkap",""],
+["7502","Kab. Boalemo","Gorontalo","B",0.6,0.6,122.41,"jagung tangkap",""],
+["7503","Kab. Bone Bolango","Gorontalo","B",0.6,0.5,123.19,"jagung tangkap",""],
+["7504","Kab. Pohuwato","Gorontalo","B",0.6,0.55,121.77,"jagung tangkap",""],
+["7505","Kab. Gorontalo Utara","Gorontalo","B",0.6,0.9,122.71,"tangkap",""],
+["7571","Kota Gorontalo","Gorontalo","K",0.63,0.55,123.06,"jagung","kuliner"],
+["7601","Kab. Pasangkayu","Sulawesi Barat","B",0.58,-1.38,119.42,"kakao sawit","logistik"],
+["7602","Kab. Mamuju","Sulawesi Barat","B",0.58,-2.55,119.13,"kakao sawit","logistik"],
+["7603","Kab. Mamasa","Sulawesi Barat","B",0.58,-2.98,119.3,"kakao sawit","logistik"],
+["7604","Kab. Polewali Mandar","Sulawesi Barat","B",0.58,-3.38,119.16,"kakao sawit","logistik"],
+["7605","Kab. Majene","Sulawesi Barat","B",0.58,-3.3,118.9,"sawit","logistik"],
+["7606","Kab. Mamuju Tengah","Sulawesi Barat","B",0.58,-2.08,119.32,"kakao sawit","logistik"],
+["8101","Kab. Maluku Tengah","Maluku","R",0.58,-3.41,129.15,"tangkap",""],
+["8102","Kab. Maluku Tenggara","Maluku","R",0.58,-5.68,132.91,"cengkeh rumput",""],
+["8103","Kab. Kepulauan Tanimbar","Maluku","R",0.58,-7.55,131.43,"gas rumput tangkap","logistik"],
+["8104","Kab. Buru","Maluku","R",0.58,-3.3,126.84,"rumput tangkap",""],
+["8105","Kab. Seram Bagian Timur","Maluku","R",0.58,-3.79,130.94,"cengkeh minyak tangkap","logistik"],
+["8106","Kab. Seram Bagian Barat","Maluku","R",0.58,-3.12,128.36,"cengkeh rumput",""],
+["8107","Kab. Kepulauan Aru","Maluku","R",0.58,-6.12,134.47,"rumput",""],
+["8108","Kab. Maluku Barat Daya","Maluku","R",0.58,-7.92,128.36,"tangkap",""],
+["8109","Kab. Buru Selatan","Maluku","R",0.58,-3.64,126.58,"cengkeh tangkap",""],
+["8171","Kota Ambon","Maluku","K",0.61,-3.69,128.19,"cengkeh tangkap",""],
+["8172","Kota Tual","Maluku","K",0.61,-5.51,132.38,"",""],
+["8201","Kab. Halmahera Barat","Maluku Utara","R",0.63,1.29,127.54,"cengkeh tangkap",""],
+["8202","Kab. Halmahera Tengah","Maluku Utara","R",0.63,0.31,128.43,"tangkap","logistik"],
+["8203","Kab. Halmahera Utara","Maluku Utara","R",0.63,1.6,127.88,"cengkeh tangkap",""],
+["8204","Kab. Halmahera Selatan","Maluku Utara","R",0.63,-0.5,127.58,"cengkeh kakao",""],
+["8205","Kab. Kepulauan Sula","Maluku Utara","R",0.63,-2.03,125.87,"kakao tangkap",""],
+["8206","Kab. Halmahera Timur","Maluku Utara","R",0.63,1.03,128.25,"cengkeh kakao",""],
+["8207","Kab. Pulau Morotai","Maluku Utara","R",0.63,2.27,128.42,"cengkeh tangkap",""],
+["8208","Kab. Pulau Taliabu","Maluku Utara","R",0.63,-1.82,124.69,"cengkeh",""],
+["8271","Kota Ternate","Maluku Utara","K",0.66,0.81,127.28,"cengkeh tangkap",""],
+["8272","Kota Tidore Kepulauan","Maluku Utara","K",0.66,0.57,127.54,"",""],
+["9103","Kab. Jayapura","Papua","R",0.79,-2.66,140.27,"sapi tangkap",""],
+["9105","Kab. Kepulauan Yapen","Papua","R",0.79,-1.79,136.2,"sapi tangkap",""],
+["9106","Kab. Biak Numfor","Papua","R",0.79,-1.05,135.86,"tangkap",""],
+["9110","Kab. Sarmi","Papua","R",0.79,-2.09,138.87,"sapi tangkap",""],
+["9111","Kab. Keerom","Papua","R",0.79,-3.2,140.78,"tangkap",""],
+["9115","Kab. Waropen","Papua","R",0.79,-2.49,136.61,"tangkap",""],
+["9119","Kab. Supiori","Papua","R",0.79,-0.72,135.56,"sapi tangkap",""],
+["9120","Kab. Mamberamo Raya","Papua","R",0.79,-2.4,137.84,"sapi tangkap",""],
+["9171","Kota Jayapura","Papua","K",0.79,-2.6,140.73,"tangkap","kuliner",{"dem":1,"land":1.3}],
+["9202","Kab. Manokwari","Papua Barat","R",0.67,-0.92,133.9,"kakao tangkap",""],
+["9203","Kab. Fak Fak","Papua Barat","R",0.67,-2.87,132.44,"tangkap",""],
+["9206","Kab. Teluk Bintuni","Papua Barat","R",0.67,-2.04,133.34,"gas kakao","logistik"],
+["9207","Kab. Teluk Wondama","Papua Barat","R",0.67,-2.5,134.38,"tangkap",""],
+["9208","Kab. Kaimana","Papua Barat","R",0.67,-3.41,133.87,"kakao tangkap",""],
+["9211","Kab. Manokwari Selatan","Papua Barat","R",0.67,-1.5,134.05,"kakao",""],
+["9212","Kab. Pegunungan Arfak","Papua Barat","R",0.67,-1.27,133.84,"kakao tangkap",""],
+["9301","Kab. Merauke","Papua Selatan","R",0.79,-7.99,140.0,"padi sapi",""],
+["9302","Kab. Boven Digoel","Papua Selatan","R",0.79,-5.85,140.41,"padi",""],
+["9303","Kab. Mappi","Papua Selatan","R",0.79,-6.38,139.36,"padi tangkap",""],
+["9304","Kab. Asmat","Papua Selatan","R",0.79,-5.57,138.63,"padi sapi",""],
+["9401","Kab. Nabire","Papua Tengah","R",0.79,-3.33,135.55,"kopi",""],
+["9402","Kab. Puncak Jaya","Papua Tengah","R",0.79,-3.65,138.03,"kopi",""],
+["9403","Kab. Paniai","Papua Tengah","R",0.79,-3.84,136.42,"kopi tangkap",""],
+["9404","Kab. Mimika","Papua Tengah","R",0.85,-4.53,136.87,"","kuliner logistik"],
+["9405","Kab. Puncak","Papua Tengah","R",0.79,-3.87,137.11,"kopi",""],
+["9406","Kab. Dogiyai","Papua Tengah","R",0.79,-4.02,135.93,"kopi tangkap",""],
+["9407","Kab. Intan Jaya","Papua Tengah","R",0.79,-3.66,136.87,"kopi tangkap",""],
+["9408","Kab. Deiyai","Papua Tengah","R",0.79,-4.08,136.27,"kopi tangkap",""],
+["9501","Kab. Jayawijaya","Papua Pegunungan","R",0.79,-4.01,138.87,"kopi",""],
+["9502","Kab. Pegunungan Bintang","Papua Pegunungan","R",0.79,-4.59,140.53,"kopi",""],
+["9503","Kab. Yahukimo","Papua Pegunungan","R",0.79,-4.42,139.4,"kopi",""],
+["9504","Kab. Tolikara","Papua Pegunungan","R",0.79,-3.62,138.45,"kopi",""],
+["9505","Kab. Mamberamo Tengah","Papua Pegunungan","R",0.79,-3.69,138.9,"kopi",""],
+["9506","Kab. Yalimo","Papua Pegunungan","R",0.79,-3.85,139.36,"kopi",""],
+["9507","Kab. Lanny Jaya","Papua Pegunungan","R",0.79,-3.92,138.5,"kopi",""],
+["9508","Kab. Nduga","Papua Pegunungan","R",0.79,-4.35,138.39,"kopi",""],
+["9601","Kab. Sorong","Papua Barat Daya","R",0.67,-1.12,131.53,"minyak tangkap","logistik"],
+["9602","Kab. Sorong Selatan","Papua Barat Daya","R",0.67,-1.65,132.16,"tangkap",""],
+["9603","Kab. Raja Ampat","Papua Barat Daya","R",0.67,-0.73,130.65,"tangkap","wisata"],
+["9604","Kab. Tambrauw","Papua Barat Daya","R",0.67,-0.74,132.74,"tangkap",""],
+["9605","Kab. Maybrat","Papua Barat Daya","R",0.67,-1.3,132.38,"tangkap",""],
+["9671","Kota Sorong","Papua Barat Daya","K",0.7,-0.88,131.28,"minyak tangkap","logistik"]];
+const OLD_REG={"bna":"1171","acg":"1104","mdn":"1271","dsd":"1207","sim":"1208","kar":"1206","pdg":"1371","agm":"1306","pku":"1471","rhl":"1406","btm":"2171","bnt":"2101","jmb":"1571","mjb":"1505","plg":"1671","oki":"1602","pgk":"1971","blt":"1902","bkl":"1771","rjl":"1702","bdl":"1871","lmt":"1802","lmb":"1804","tng":"3671","clg":"3672","pdl":"3601","jkt":"3171","bgr":"3201","bdg":"3273","bks":"3275","krw":"3215","grt":"3205","cjr":"3203","imy":"3212","crb":"3274","tsm":"3206","smg":"3374","byl":"3309","brb":"3329","jpr":"3320","pkl":"3375","kds":"3319","slo":"3372","tmg":"3323","bms":"3302","ygy":"3471","slm":"3404","gkd":"3403","sby":"3578","sda":"3515","psr":"3514","mlg":"3573","jbr":"3509","bwi":"3510","lmg":"3524","pbl":"3513","smp":"3529","bdu":"5103","dps":"5171","gnr":"5104","bll":"5108","mtr":"5271","ltm":"5203","smw":"5204","kpg":"5371","sbt":"5311","mgb":"5315","ptk":"6171","sgu":"6103","pky":"6271","ktm":"6202","bjm":"6371","tbu":"6310","bpn":"6471","smd":"6472","kkr":"6402","trk":"6571","mnd":"7171","mnh":"7102","gto":"7571","pal":"7271","mrw":"7206","mmj":"7602","mks":"7371","bon":"7308","tor":"7326","pin":"7315","kdi":"7471","klk":"7401","amb":"8171","tte":"8271","hlt":"8202","jyp":"9171","mrk":"9301","mmk":"9404","jyw":"9501","mkw":"9202","sor":"9671"};
 const TYPE_DEF={M:{dem:1.2,land:1.3},K:{dem:1.0,land:0.9},B:{dem:0.75,land:0.6},R:{dem:0.7,land:0.9}};
 const TYPE_N={M:'Metro city',K:'City',B:'Regency',R:'Remote regency'};
 const REG={};
-for(const [id,n,prov,type,u1,lat,lon,spec,o] of REG_RAW){ const u0=Math.min(1.05,u1+(1-u1)*0.3); REG[id]={id,n,prov,type,u:[u0,u1],lat,lon,spec:spec.split(' '),...TYPE_DEF[type],...(o||{})}; }
+for(const [id,n,prov,type,u1,lat,lon,spec,boost,o] of REG_RAW){ const u0=Math.min(1.05,u1+(1-u1)*0.3); REG[id]={id,n,prov,type,u:[u0,u1],lat,lon,spec:spec?spec.split(' '):[],boost:boost?boost.split(' '):[],...TYPE_DEF[type],...(o||{})}; }
 const PROVS=[...new Set(REG_RAW.map(r=>r[2]))];
 const regsIn=p=>REG_RAW.filter(r=>r[2]===p).map(r=>r[0]);
 // Provinces split off during the game period: [parent, date the new province took over]
@@ -419,8 +834,36 @@ const STOCKS=[
   {s:'UNVR',n:'Unilever Indonesia',sec:'Consumer',b:0.6,y:0.03,p:[705,885,1320,1350,1560,2210,3300,3760,4170,5200,6460,7400,7760,11180,9080,8400,7350,4110,4700,3530,1885]},
   {s:'GGRM',n:'Gudang Garam',sec:'Tobacco',b:0.7,y:0.03,p:[13600,10500,10000,8500,4250,21550,40000,62050,56300,42000,60700,55000,63900,83800,83625,53000,41000,30600,18000,20400,13250]},
   {s:'INDF',n:'Indofood Sukses Makmur',sec:'Consumer',b:1.0,y:0.03,p:[925,1350,1920,2675,930,3550,4875,4600,5850,6600,6750,5175,7925,7625,7450,7925,6850,6325,6725,6450,7700]},
+  {s:'ADRO',n:'Adaro Energy',sec:'Coal mining',b:1.4,y:0.06,ipo:20080716,p:[null,null,null,null,580,1730,2550,1770,1590,1090,1040,515,1695,1860,1215,1555,1430,2250,3850,2380,2430]},
+  {s:'AKRA',n:'AKR Corporindo',sec:'Energy distribution',b:1.0,y:0.04,p:[50,60,120,180,110,290,480,640,810,840,930,1400,1280,1270,860,760,630,820,1400,1475,1130]},
+  {s:'AMRT',n:'Sumber Alfaria Trijaya',sec:'Retail (Alfamart)',b:0.7,y:0.01,ipo:20090115,p:[null,null,null,null,null,50,90,150,230,400,470,520,550,610,750,905,800,1465,2650,2900,2850]},
+  {s:'ANTM',n:'Aneka Tambang',sec:'Metals mining',b:1.5,y:0.03,p:[280,330,990,1950,520,1280,1620,1140,870,750,640,315,895,625,765,840,1935,2250,1985,1705,1525]},
+  {s:'BBNI',n:'Bank Negara Indonesia',sec:'Banking',b:1.3,y:0.04,p:[575,545,935,805,340,1025,1975,1825,1925,1975,3050,2487,2762,4962,4400,3875,3087,3375,4612,5375,4350]},
+  {s:'BMRI',n:'Bank Mandiri',sec:'Banking',b:1.2,y:0.045,p:[331,285,725,887,506,1125,1625,1687,2025,1962,2694,2312,2894,4000,3662,3875,3212,3512,4962,6050,5700]},
+  {s:'BRIS',n:'Bank Syariah Indonesia',sec:'Islamic banking',b:1.3,y:0.01,ipo:20180509,p:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,400,300,2250,1780,1290,1740,2730]},
+  {s:'BRPT',n:'Barito Pacific',sec:'Petrochemicals',b:1.6,y:0.005,p:[120,100,150,330,50,110,120,90,60,50,55,40,260,450,380,880,960,790,755,1330,935]},
+  {s:'CPIN',n:'Charoen Pokphand Indonesia',sec:'Poultry & feed',b:1.0,y:0.02,p:[60,80,120,160,70,400,1840,2150,3650,3375,3780,2600,3090,3000,7225,6500,6525,5950,5650,5025,4760]},
+  {s:'CTRA',n:'Ciputra Development',sec:'Property',b:1.4,y:0.015,p:[160,200,300,450,120,290,330,400,650,750,1250,1250,1330,1185,1010,1040,985,970,940,1170,985]},
+  {s:'EXCL',n:'XL Axiata',sec:'Telecom',b:1.0,y:0.02,ipo:20050929,p:[null,1500,1550,1750,1000,2200,4700,4850,5500,5200,4865,3650,2310,2960,1980,3150,2730,3170,2140,2000,2250]},
+  {s:'ICBP',n:'Indofood CBP',sec:'Consumer',b:0.6,y:0.025,ipo:20101007,p:[null,null,null,null,null,null,2400,2650,3900,5100,6550,6738,8575,8900,10450,11150,9575,8700,10000,10575,11375]},
+  {s:'INCO',n:'Vale Indonesia',sec:'Nickel mining',b:1.4,y:0.02,p:[1000,1200,2700,4000,1900,3700,4875,3175,2350,2650,3625,1635,2820,2890,3260,3640,5100,4680,7100,4310,3640]},
+  {s:'INKP',n:'Indah Kiat Pulp & Paper',sec:'Pulp & paper',b:1.5,y:0.01,p:[700,600,950,2300,450,1600,1850,1000,900,1000,1150,1000,1030,5400,11550,7700,10600,7875,8725,8325,6600]},
+  {s:'ITMG',n:'Indo Tambangraya Megah',sec:'Coal mining',b:1.3,y:0.09,ipo:20071218,p:[null,null,null,15000,7300,25000,50500,38650,41550,28500,15375,5725,16875,20700,20250,11475,13850,20400,39025,25650,26700]},
+  {s:'JPFA',n:'Japfa Comfeed Indonesia',sec:'Poultry & feed',b:1.2,y:0.025,p:[300,250,250,400,120,600,650,850,1140,1520,880,480,1455,1300,2150,1535,1465,1720,1295,1180,1925]},
+  {s:'KLBF',n:'Kalbe Farma',sec:'Pharmaceuticals',b:0.8,y:0.02,p:[55,70,125,125,41,160,320,340,1060,1250,1830,1320,1515,1690,1520,1620,1480,1615,2090,1610,1360]},
+  {s:'MBMA',n:'Merdeka Battery Materials',sec:'Nickel & battery',b:1.5,y:0,ipo:20230418,p:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,555,456]},
+  {s:'MDKA',n:'Merdeka Copper Gold',sec:'Gold & copper mining',b:1.4,y:0,ipo:20150619,p:[null,null,null,null,null,null,null,null,null,null,null,440,590,500,650,1000,2830,4050,4250,2710,1575]},
+  {s:'MEDC',n:'Medco Energi Internasional',sec:'Oil & gas',b:1.4,y:0.02,p:[600,900,1000,1050,450,650,750,450,440,520,600,280,610,650,545,580,590,470,1015,1150,1100]},
+  {s:'PGAS',n:'Perusahaan Gas Negara',sec:'Gas distribution',b:1.1,y:0.05,p:[400,600,1000,2100,860,3550,4425,3175,4600,4475,6000,2745,2700,1750,2120,2170,1655,1375,1760,1130,1590]},
+  {s:'PTBA',n:'Bukit Asam',sec:'Coal mining',b:1.2,y:0.08,p:[180,220,500,1300,1250,3500,4400,3500,3050,2000,2500,800,2500,2460,4300,2660,2810,2710,3690,2440,2750]},
+  {s:'SMGR',n:'Semen Indonesia',sec:'Cement',b:1.1,y:0.025,p:[900,1200,2200,4500,2200,6800,7800,9800,13500,12800,14500,9600,8800,9900,11500,12000,12425,7250,6575,6400,3280]},
+  {s:'UNTR',n:'United Tractors',sec:'Heavy equipment & mining',b:1.2,y:0.05,p:[1800,2700,5800,10000,4600,15500,24600,26350,19700,19000,17350,16950,21250,35400,27350,21525,26600,22150,26075,22625,26775]},
 ];
-const SYMS=STOCKS.map(s=>s.s);
+// IDX30 constituents (Aug–Oct 2025 list); GGRM is kept as a former member.
+const IDX30=new Set(['ADRO','AKRA','AMRT','ANTM','ASII','BBCA','BBNI','BBRI','BMRI','BRIS','BRPT','CPIN','CTRA','EXCL','ICBP','INCO','INDF','INKP','ITMG','JPFA','KLBF','MBMA','MDKA','MEDC','PGAS','PTBA','SMGR','TLKM','UNTR','UNVR']);
+for(const st of STOCKS){ const f=st.p.find(v=>v!=null); st.p=st.p.map(v=>v==null?f:v); }
+const listed=(sym,h)=>sym==='IHSG'||!STK[sym]?.ipo||keyH(h)>=STK[sym].ipo;
+const SYMS=STOCKS.map(s=>s.s).sort();
 const STK=Object.fromEntries(STOCKS.map(s=>[s.s,s]));
 function tick(p){ return p<200?1:p<500?2:p<2000?5:p<5000?10:25; }
 const roundTick = p => { const t=tick(p); return Math.max(t, Math.round(p/t)*t); };
@@ -531,13 +974,13 @@ const BIZ={
     lv:[{l:'Warung makan',setup:20e6,staff:2,rev:450e3,opex:1.2e6},{l:'Rumah makan',setup:90e6,staff:5,rev:1.6e6,opex:4e6},{l:'Restoran',setup:400e6,staff:14,rev:5.5e6,opex:14e6}]},
   konveksi:{n:'Konveksi',kind:'retail',where:'any',open:[8,17],margin:0.25,blurb:'Garment workshop sewing uniforms and ready-to-wear for wholesalers.',
     lv:[{l:'6 sewing machines',setup:30e6,staff:4,rev:520e3,opex:1.2e6},{l:'Workshop, 25 machines',setup:150e6,staff:14,rev:2.2e6,opex:4.5e6},{l:'Garment plant',setup:900e6,staff:60,rev:10e6,opex:20e6}]},
-  batik:{n:'Usaha Batik',kind:'retail',where:'spec',open:[8,17],margin:0.35,blurb:'Batik cap and tulis workshop with a showroom. Only in the old batik towns.',
+  batik:{n:'Usaha Batik',kind:'retail',where:'any',open:[8,17],margin:0.35,blurb:'Batik cap and tulis workshop with a showroom. Sells best in the old batik towns.',
     lv:[{l:'Batik cap workshop',setup:25e6,staff:3,rev:380e3,opex:1e6},{l:'Workshop and showroom',setup:120e6,staff:8,rev:1.5e6,opex:4e6},{l:'Batik house, exporting',setup:500e6,staff:25,rev:5.2e6,opex:12e6}]},
-  mebel:{n:'Mebel Kayu',kind:'retail',where:'spec',open:[8,17],margin:0.3,blurb:'Teak and mahogany furniture for local buyers and exporters.',
+  mebel:{n:'Mebel Kayu',kind:'retail',where:'any',open:[8,17],margin:0.3,blurb:'Teak and mahogany furniture for local buyers and exporters. Strongest in the carving towns.',
     lv:[{l:'Carpentry shed',setup:30e6,staff:3,rev:400e3,opex:1e6},{l:'Furniture workshop',setup:150e6,staff:10,rev:1.8e6,opex:4e6},{l:'Export factory',setup:700e6,staff:35,rev:7e6,opex:14e6}]},
-  wisata:{n:'Homestay & Wisata',kind:'retail',where:'spec',open:[0,24],margin:0.5,blurb:'Rooms and tours in tourist regencies. Rich margins, hit hard by any shock.',
+  wisata:{n:'Penginapan & Wisata',kind:'retail',where:'any',open:[0,24],margin:0.5,blurb:'Rooms for travellers anywhere; in tourist regencies, tours and resorts. Rich margins, hit hard by any shock.',
     lv:[{l:'Homestay, 4 rooms',setup:60e6,staff:2,rev:400e3,opex:1.5e6},{l:'Guesthouse, 16 rooms',setup:300e6,staff:8,rev:1.8e6,opex:6e6},{l:'Boutique resort',setup:1.5e9,staff:30,rev:8e6,opex:30e6}]},
-  logistik:{n:'Jasa Angkutan',kind:'retail',where:'spec',open:[6,22],margin:0.3,blurb:'Trucks and heavy equipment for ports, mines and plantations.',
+  logistik:{n:'Jasa Angkutan',kind:'retail',where:'any',open:[6,22],margin:0.3,blurb:'Trucks and heavy equipment. Busiest near ports, mines and plantations.',
     lv:[{l:'2 pickup trucks',setup:120e6,staff:2,rev:900e3,opex:2e6},{l:'Truck fleet',setup:600e6,staff:8,rev:4e6,opex:9e6},{l:'Heavy equipment rental',setup:3e9,staff:20,rev:18e6,opex:40e6}]},
   lele:{n:'Kolam Lele',kind:'cycle',where:'any',cycle:90,price:9000,e:0.84,vol:0.08,fail:0.06,prod:'catfish',blurb:'Catfish ponds. Harvest every 90 days. Low risk, modest margin.',
     lv:[{l:'4 tarpaulin ponds',setup:15e6,staff:1,input:7e6,yield:1400,opex:150e3},{l:'12 tarpaulin ponds',setup:40e6,staff:2,input:20e6,yield:4200,opex:400e3},{l:'30 concrete ponds',setup:130e6,staff:4,input:50e6,yield:10500,opex:1.1e6}]},
@@ -549,7 +992,7 @@ const BIZ={
     lv:[{l:'1 ha (leased)',setup:7e6,staff:1,input:5e6,yield:5500,opex:80e3},{l:'5 ha',setup:32e6,staff:3,input:24e6,yield:27500,opex:350e3},{l:'20 ha',setup:120e6,staff:8,input:95e6,yield:110000,opex:1.2e6}]},
   jagung:{n:'Ladang Jagung',kind:'cycle',where:'rural',land:true,cycle:100,price:1100,e:1.2,vol:0.1,fail:0.07,prod:'dried corn',blurb:'Feed corn for the mills. Cheap to start.',
     lv:[{l:'1 ha',setup:5e6,staff:1,input:4e6,yield:5000,opex:60e3},{l:'5 ha',setup:22e6,staff:3,input:19e6,yield:25000,opex:250e3},{l:'25 ha',setup:100e6,staff:10,input:90e6,yield:130000,opex:1e6}]},
-  bawang:{n:'Bawang Merah',kind:'cycle',where:'spec',land:true,cycle:70,price:7000,e:1.2,vol:0.3,fail:0.1,prod:'shallots',season:[1.3,1.4,1.2,1.0,0.8,0.8,0.8,0.9,1.0,1.1,1.2,1.3],blurb:'Shallot beds. Fast cycles, wild price swings.',
+  bawang:{n:'Bawang Merah',kind:'cycle',where:'rural',land:true,cycle:70,price:7000,e:1.2,vol:0.3,fail:0.1,prod:'shallots',season:[1.3,1.4,1.2,1.0,0.8,0.8,0.8,0.9,1.0,1.1,1.2,1.3],blurb:'Shallot beds. Fast cycles, wild price swings.',
     lv:[{l:'0,5 ha',setup:8e6,staff:2,input:20e6,yield:5000,opex:150e3},{l:'2 ha',setup:30e6,staff:6,input:78e6,yield:20000,opex:500e3},{l:'8 ha',setup:110e6,staff:20,input:300e6,yield:80000,opex:1.6e6}]},
   tembakau:{n:'Kebun Tembakau',kind:'cycle',where:'spec',land:true,cycle:120,price:18000,e:1.0,vol:0.2,fail:0.1,prod:'cured tobacco leaf',season:[0.9,0.9,0.9,0.9,1,1,1.05,1.1,1.1,1.05,0.95,0.9],blurb:'Tobacco for the kretek makers. Best prices in the dry season.',
     lv:[{l:'1 ha',setup:8e6,staff:2,input:12e6,yield:900,opex:100e3},{l:'5 ha',setup:35e6,staff:8,input:58e6,yield:4500,opex:400e3},{l:'20 ha with curing barns',setup:150e6,staff:25,input:230e6,yield:18000,opex:1.5e6}]},
@@ -569,10 +1012,26 @@ const BIZ={
     lv:[{l:'1 ha',setup:25e6,staff:1,input:8e6,yield:1500,opex:100e3},{l:'5 ha',setup:110e6,staff:3,input:38e6,yield:7500,opex:400e3},{l:'20 ha',setup:420e6,staff:8,input:150e6,yield:30000,opex:1.4e6}]},
   rumput:{n:'Rumput Laut',kind:'cycle',where:'spec',cycle:45,price:4500,e:0.9,vol:0.2,fail:0.1,prod:'dried seaweed (cottonii)',blurb:'Seaweed lines in clear shallow water. Cheap, labour-heavy, quick.',
     lv:[{l:'1 ha of lines',setup:6e6,staff:2,input:3e6,yield:1200,opex:50e3},{l:'5 ha',setup:28e6,staff:6,input:14e6,yield:6000,opex:200e3},{l:'20 ha with drying floor',setup:110e6,staff:18,input:55e6,yield:24000,opex:700e3}]},
-  sapi:{n:'Penggemukan Sapi',kind:'cycle',where:'spec',cycle:120,price:22000,e:1.25,vol:0.06,fail:0.03,prod:'live cattle',blurb:'Buy feeder cattle, fatten them for four months, sell by live weight.',
+  sapi:{n:'Penggemukan Sapi',kind:'cycle',where:'rural',cycle:120,price:22000,e:1.25,vol:0.06,fail:0.03,prod:'live cattle',blurb:'Buy feeder cattle, fatten them for four months, sell by live weight.',
     lv:[{l:'5 head',setup:20e6,staff:1,input:35e6,yield:2000,opex:150e3},{l:'20 head',setup:70e6,staff:3,input:140e6,yield:8000,opex:500e3},{l:'100 head feedlot',setup:320e6,staff:10,input:700e6,yield:40000,opex:2e6}]},
   tangkap:{n:'Kapal Ikan',kind:'cycle',where:'spec',cycle:15,price:10000,e:0.9,vol:0.15,fail:0.08,prod:'fresh fish',blurb:'Fishing boats on two-week trips. Bad weather means a poor catch.',
     lv:[{l:'5 GT boat',setup:80e6,staff:4,input:6e6,yield:1000,opex:300e3},{l:'20 GT boat',setup:400e6,staff:10,input:25e6,yield:4500,opex:1.2e6},{l:'3 boats, 30 GT',setup:1.8e9,staff:36,input:110e6,yield:20000,opex:5e6}]},
+  agen_lpg:{n:'Agen Gas LPG',kind:'retail',where:'any',tier:1,from:20070508,fromWhy:'the kerosene-to-LPG conversion programme starts in May 2007',open:[7,19],margin:0.09,blurb:'Pertamina LPG distribution, from a neighbourhood pangkalan to a regional agent and filling plant. Huge volume, thin margin.',
+    lv:[{l:'Pangkalan LPG',setup:40e6,staff:2,rev:1.5e6,opex:0.8e6},{l:'Agen LPG (Pertamina)',setup:600e6,staff:8,rev:15e6,opex:8e6},{l:'SPPBE filling plant',setup:6e9,staff:30,rev:90e6,opex:40e6}]},
+  spbu:{n:'Pom Bensin (SPBU)',kind:'retail',where:'any',tier:1,open:[5,23],margin:0.055,blurb:'A Pertamina franchise station. The margin per litre is fixed and small, the litres are many. Fewer competitors in remote regencies.',
+    lv:[{l:'SPBU Mini (modular)',setup:400e6,staff:4,rev:15e6,opex:4e6},{l:'SPBU, 4 dispensers',setup:3e9,staff:14,rev:70e6,opex:15e6},{l:'SPBU with minimarket',setup:6e9,staff:28,rev:150e6,opex:30e6}]},
+  konsultan_ti:{n:'Konsultan TI',kind:'retail',where:'any',tier:1,wage:3.5,open:[8,18],margin:0.65,blurb:'Software development and IT services for companies and government. Expensive people, rich margins, wants a big-city client base. Can serve your group as its IT vendor.',
+    lv:[{l:'Studio, 3 developers',setup:60e6,staff:3,rev:0.9e6,opex:1.5e6},{l:'Software house, 12',setup:400e6,staff:12,rev:4e6,opex:6e6},{l:'IT consultancy, 50',setup:2.5e9,staff:50,rev:18e6,opex:25e6}]},
+  alihdaya:{n:'Alih Daya (Outsourcing)',kind:'retail',where:'any',tier:1,open:[8,17],margin:0.2,blurb:'Places security guards, cleaners, drivers and admin staff with client companies. Can also serve your own group as its outsourcing vendor.',
+    lv:[{l:'Agency, 30 placed',setup:50e6,staff:2,rev:1.2e6,opex:1e6},{l:'Agency, 150 placed',setup:300e6,staff:8,rev:6e6,opex:4e6},{l:'National firm, 800 placed',setup:2e9,staff:30,rev:30e6,opex:18e6}]},
+  bpr:{n:'BPR (Bank Perkreditan Rakyat)',kind:'retail',where:'any',tier:2,pt:true,ptWhy:'UU 7/1992 on Banking',depr:0.15,wage:2,open:[8,16],margin:0.45,blurb:'A rural bank lending to traders and farmers. Steady interest income, but bad loans come in waves. Strong finance and risk teams keep them down.',
+    lv:[{l:'BPR, 1 office',setup:5e9,staff:12,rev:8e6,opex:25e6},{l:'BPR, 4 branches',setup:15e9,staff:35,rev:26e6,opex:70e6},{l:'BPR network, 15 branches',setup:60e9,staff:120,rev:110e6,opex:280e6}]},
+  batubara:{n:'Tambang Batu Bara',kind:'cycle',where:'spec',tier:2,wage:1.8,cycle:30,usd:'batubara',take:0.6,unit:'ton',vol:0.08,fail:0.03,prod:'thermal coal',blurb:'An IUP coal concession. Sold monthly at world prices in dollars: a fortune in 2008, 2011 and 2022, losses when the price slumps.',
+    lv:[{l:'Small pit (IUP)',setup:25e9,staff:60,input:4.8e9,yield:20000,opex:300e6},{l:'1 Mt a year',setup:120e9,staff:250,input:20e9,yield:85000,opex:1.2e9},{l:'Large concession',setup:600e9,staff:1200,input:95e9,yield:420000,opex:5e9}]},
+  minyak:{n:'Sumur Minyak (KSO)',kind:'cycle',where:'spec',tier:2,wage:2,cycle:30,usd:'minyak',take:0.5,unit:'barrel',vol:0.06,fail:0.04,prod:'crude oil',blurb:'An operating cooperation (KSO) with Pertamina on old wells. Paid at the dollar oil price after the state share.',
+    lv:[{l:'KSO, old wells',setup:30e9,staff:40,input:0.9e9,yield:6000,opex:250e6},{l:'Marginal field',setup:150e9,staff:150,input:4.5e9,yield:30000,opex:1e9},{l:'Block share, offshore',setup:700e9,staff:500,input:21e9,yield:140000,opex:4.5e9}]},
+  gas:{n:'Lapangan Gas',kind:'cycle',where:'spec',tier:2,wage:2,cycle:30,usd:'gas',take:0.5,unit:'MMBTU',vol:0.04,fail:0.03,prod:'natural gas',blurb:'A gas field selling to PLN, fertiliser plants and industry on long contracts. Steadier than oil.',
+    lv:[{l:'Small field',setup:40e9,staff:40,input:1.5e9,yield:150000,opex:300e6},{l:'Field with processing plant',setup:180e9,staff:150,input:6.5e9,yield:650000,opex:1.2e9},{l:'Large block share',setup:800e9,staff:500,input:30e9,yield:3000000,opex:5e9}]},
 };
 // Nominal price index vs 2005 for world-priced crops (approximate farm-gate levels).
 const HISTP={
@@ -585,6 +1044,7 @@ function histIdx(t,h){ const T=HISTP[t], yf=clamp(yfrac(h)-0.5,2005,2024), y=Mat
 const landAdj = reg => 0.6+0.4*REG[reg].land;
 function commodityPrice(t,h){
   const b=BIZ[t], m=dOf(h).getUTCMonth(), k=keyH(h);
+  if(b.usd) return tblAt(USDP[b.usd],h)*usd(h)*b.take;
   let p=b.price*(HISTP[t]?histIdx(t,h):Math.pow(cpi(h),b.e))*(b.season?b.season[m]:1);
   if(t==='ayam' && k>=20200401 && k<=20200630) p*=0.75;
   if(t==='udang' && k>=20200401 && k<=20200731) p*=0.8;
@@ -599,12 +1059,59 @@ function shockF(t,reg,h){
 }
 function seasonRetail(h){ const y=yearOf(h); if(!LEBK[y]) return 1; const L0=hK(LEBK[y]); if(h>=L0-30*24 && h<L0) return 1.22; if(h>=L0 && h<L0+4*24) return 0.55; return dOf(h).getUTCMonth()===11?1.05:1; }
 function staffF(u){ const req=BIZ[u.t].lv[u.lv].staff; if(u.w<=0) return 0; return u.w>=req?Math.min(1.08,1+0.03*(u.w-req)):u.w/req; }
-function moraleF(u,h){ const r=u.sal/umr(u.reg,h); return r<1?0.7+0.3*r:Math.min(1.1,1+0.2*(r-1)); }
+function moraleF(u,h){ const r=u.sal/uWage(u,h); return r<1?0.7+0.3*r:Math.min(1.1,1+0.2*(r-1)); }
 const SPEC_BONUS=1.25;
+const wStep=u=>Math.max(1,Math.round(BIZ[u.t].lv[u.lv].staff/10));
 const isSpec=(t,reg)=>REG[reg].spec.includes(t);
 const specF=u=>isSpec(u.t,u.reg)?SPEC_BONUS:1;
 function allowed(t,reg){ const w=BIZ[t].where; return w==='any'||isSpec(t,reg)||(w==='rural'&&REG[reg].type!=='M'); }
-function whyNot(t){ const w=BIZ[t].where; return w==='rural'?'Needs farmland: not in metro cities':'Only where it is a regional specialty'; }
+function whyNot(t){ const w=BIZ[t].where; return w==='rural'?'Needs farmland: not in metro cities':'Only where the resource is: a regional specialty'; }
+// World prices in US dollars for the extractive businesses (annual averages, approximate).
+const USDP={
+  batubara:{2005:36,2006:36,2007:45,2008:80,2009:55,2010:70,2011:85,2012:72,2013:60,2014:55,2015:45,2016:45,2017:60,2018:65,2019:50,2020:40,2021:85,2022:180,2023:110,2024:85},
+  minyak:{2005:54,2006:64,2007:70,2008:97,2009:61,2010:79,2011:111,2012:113,2013:106,2014:96,2015:50,2016:40,2017:51,2018:67,2019:62,2020:40,2021:68,2022:97,2023:78,2024:78},
+  gas:{2005:3,2006:3.5,2007:4,2008:5.5,2009:4.5,2010:5,2011:6,2012:7,2013:8,2014:8.5,2015:7,2016:6,2017:6.5,2018:7,2019:7,2020:6,2021:6,2022:7,2023:7,2024:7},
+};
+function tblAt(T,h){ const yf=clamp(yfrac(h)-0.5,2005,2024), y=Math.floor(yf), f=yf-y; return T[y]+(T[Math.min(2024,y+1)]-T[y])*f; }
+const uWage=(u,h)=>umr(u.reg,h)*(BIZ[u.t].wage||1);
+const unitOf=b=>b.unit||'kg';
+// How well a shop or service sells in a regency: every regency can host it, the local market decides how well.
+function retailMult(t,reg){
+  const r=REG[reg], up=(r.boost||[]).includes(t), T=r.type;
+  switch(t){
+    case 'wisata': return up?1.5:T==='M'?1:T==='K'?0.8:0.55;
+    case 'batik': case 'mebel': return up?1.4:0.75;
+    case 'konveksi': return up?1.35:T==='M'?1:0.8;
+    case 'kuliner': return up?1.3:1;
+    case 'logistik': return up?1.35:0.8;
+    case 'konsultan_ti': return T==='M'?1.25:T==='K'?0.9:T==='B'?0.55:0.4;
+    case 'spbu': return T==='R'?1.15:T==='M'?0.95:1;
+    case 'agen_lpg': return T==='M'?0.9:1.05;
+    case 'alihdaya': return T==='M'?1.3:T==='K'?1:0.6;
+    case 'bpr': return T==='M'?0.9:1.1;
+  }
+  return 1;
+}
+const unitBoost=u=>BIZ[u.t].kind==='retail'?retailMult(u.t,u.reg):specF(u);
+function boostChip(t,reg){
+  const b=BIZ[t];
+  if(b.kind!=='retail') return isSpec(t,reg)?'<span class="chip good">Specialty +25%</span>':'';
+  const m=retailMult(t,reg); if(Math.abs(m-1)<0.01) return '';
+  return `<span class="chip ${m>1?'good':'warn'}">Local demand ×${m.toFixed(2).replace('.',',')}</span>`;
+}
+function specChips(r){
+  const a=r.spec.filter(k=>BIZ[k]).map(k=>`<span class="chip good">${BIZ[k].n}</span>`), b=(r.boost||[]).filter(k=>BIZ[k]).map(k=>`<span class="chip acc">${BIZ[k].n} ↑</span>`);
+  return [...a,...b].join(' ')||'<span class="muted">no particular specialty</span>';
+}
+const TIER_N=['','Medium business','Large business'];
+function bizGate(c,t){
+  const b=BIZ[t];
+  if(b.from&&keyH(S.h)<b.from) return `${b.n} only becomes possible from ${fkey(b.from)}${b.fromWhy?': '+b.fromWhy:''}.`;
+  if(b.pt&&c.form!=='PT') return `${b.n} must be owned by a full PT (${b.ptWhy}). ${coName(c)} is a ${FORMS[c.form].n}.`;
+  if((b.tier||0)>(c.level||0)) return `${b.n} is a ${TIER_N[b.tier].toLowerCase()}: it needs a Usaha ${LEVELS[b.tier].n} or bigger to win the licences and bank financing. ${coName(c)} is a Usaha ${SZ(c).n}. ${nextLevelText(c)}`;
+  return null;
+}
+
 
 /* ---------- Monitoring and the board */
 function monCostR(c,reg){ const o=officeFor(c,reg); return 120e3*cpi(S.h)*(1+o.d/150)*(1-0.35*officeSkill(c,o)/100)*(1-0.25*fnScore(c,'ops')/100); }
@@ -640,8 +1147,8 @@ function defaultBoard(c){
    ============================================================ */
 let S=null;
 const SAVE_KEY='juragan.save.v1';
-const blankPL=()=>({rev:0,cogs:0,wage:0,opex:0,mon:0,dep:0,intx:0,other:0,mfi:0,mfee:0,tax:0,fine:0,loss:0,tn:0});
-const netOf=p=>p.rev-p.cogs-p.wage-p.opex-(p.mon||0)-p.dep-p.intx+p.other+(p.mfi||0)-(p.mfee||0)-p.tax-p.fine-(p.loss||0);
+const blankPL=()=>({rev:0,cogs:0,wage:0,opex:0,mon:0,dep:0,intx:0,other:0,mfi:0,mfee:0,outs:0,tax:0,fine:0,loss:0,tn:0});
+const netOf=p=>p.rev-p.cogs-p.wage-p.opex-(p.mon||0)-p.dep-p.intx+p.other+(p.mfi||0)-(p.mfee||0)-(p.outs||0)-p.tax-p.fine-(p.loss||0);
 const newAcct=()=>({cash:0,deps:[],loans:[],hold:{}});
 function nid(p){ return p+(S.nid++); }
 function acct(id){ return id==='P'?S.P:S.C.find(c=>c.id===id); }
@@ -662,9 +1169,9 @@ function newGame(o){
 function migrate(){
   if(S.life){ delete S.life; if(S.tab==='life') S.tab='home'; }
   for(const a of [S.P,...S.C]){ if(a.sav) a.cash+=a.sav; delete a.sav; }
-  if(!S.home||!REG[S.home]) S.home='jkt';
+  const mapR=r=>REG[r]?r:(OLD_REG[r]||'3171'); S.home=mapR(S.home||'3171');
   S.sel.regf=S.sel.regf||{p:'',b:''}; S.sel.rep=S.sel.rep||{e:'P',per:'Q',i:0}; S.P.hist=S.P.hist||[];
-  for(const c of S.C){ if(!c.reg||!REG[c.reg]) c.reg=S.home; c.divs=c.divs||[]; c.pay=c.pay||PAY_DEF(); c.mfees=c.mfees||{}; for(const p of [c.mon,c.ytd,c.ytdPrev]) if(p){ p.mfi=p.mfi||0; p.mfee=p.mfee||0; } if(!c.board) c.board=defaultBoard(c); c.rups=c.rups||RUPS_DEF(); for(const b of c.board) if(b.mkt==null) b.mkt=b.sal; for(const p of [c.mon,c.ytd,c.ytdPrev]) if(p){ p.mon=p.mon||0; p.loss=p.loss||0; } for(const u of c.units) if(!REG[u.reg]) u.reg=S.home; }
+  for(const c of S.C){ c.reg=c.reg?mapR(c.reg):S.home; for(const u of c.units) u.reg=mapR(u.reg); for(const v of c.divs||[]) v.reg=mapR(v.reg); c.outs=c.outs||{}; for(const p of [c.mon,c.ytd,c.ytdPrev]) if(p) p.outs=p.outs||0; c.divs=c.divs||[]; c.pay=c.pay||PAY_DEF(); c.mfees=c.mfees||{}; for(const p of [c.mon,c.ytd,c.ytdPrev]) if(p){ p.mfi=p.mfi||0; p.mfee=p.mfee||0; } if(!c.board) c.board=defaultBoard(c); c.rups=c.rups||RUPS_DEF(); for(const b of c.board) if(b.mkt==null) b.mkt=b.sal; for(const p of [c.mon,c.ytd,c.ytdPrev]) if(p){ p.mon=p.mon||0; p.loss=p.loss||0; } for(const u of c.units) if(!REG[u.reg]) u.reg=S.home; }
   for(const c of S.C) if(c.level==null) updateLevel(c,true);
   for(const c of S.C) migrateOrg(c);
   if(!S.bench){ const I=S.inv; S.bench=I?{contrib:I.contrib,bDep:I.bDep,bIhsgU:I.bIhsgU,bInfU:I.bInfU,fraudY:0}:newBench(Math.max(1,nwP())); }
@@ -707,7 +1214,7 @@ function step(){
   for(const c of S.C) for(const u of c.units){
     const b=BIZ[u.t]; if(b.kind!=='retail'||u.w<=0) continue;
     if(hr<b.open[0]||hr>=b.open[1]) continue;
-    const daily=b.lv[u.lv].rev*cpi(S.h)*REG[u.reg].dem*staffF(u)*moraleF(u,S.h)*(u.t==='wisata'?1:seasonRetail(S.h))*shockF(u.t,u.reg,S.h)*(u.df||1)*specF(u)*mgmtF(c)*(1-leak(c,u))*(1+0.08*fnScore(c,'mkt')/100)*(1+0.04*fnScore(c,'hr')/100);
+    const daily=b.lv[u.lv].rev*cpi(S.h)*REG[u.reg].dem*staffF(u)*moraleF(u,S.h)*(u.t==='wisata'?1:seasonRetail(S.h))*shockF(u.t,u.reg,S.h)*(u.df||1)*retailMult(u.t,u.reg)*mgmtF(c)*(1-leak(c,u))*(1+0.08*fnScore(c,'mkt')/100)*(1+0.04*fnScore(c,'hr')/100);
     const rev=daily/(b.open[1]-b.open[0])*Math.max(0.2,1+0.2*rg());
     const cogs=rev*(1-b.margin)*(1-0.04*jobQ(c,'proc'));
     c.cash+=rev-cogs; book(c,'rev',rev); book(c,'cogs',cogs); u.mrev=(u.mrev||0)+rev; const m=um(u); m.rev+=rev; m.cost+=cogs;
@@ -751,7 +1258,7 @@ function harvest(c,u){
   c.cash+=rev; book(c,'rev',rev); um(u).rev+=rev;
   u.last={kg,price,rev,cost:u.inCost||0,fail,h:S.h};
   u.ph='idle'; u.d=0;
-  logm(`${coName(c)} · ${b.n}: ${fail?'poor harvest, ':''}${NF.format(kg)} kg ${b.prod} at ${rp(price,true)}/kg = ${rp(rev)}.`, fail?'bad':(rev>(u.inCost||0)?'good':''));
+  logm(`${coName(c)} · ${b.n}: ${fail?'poor harvest, ':''}${NF.format(kg)} ${unitOf(b)} ${b.prod} at ${rp(price,true)}/${unitOf(b)} = ${rp(rev)}.`, fail?'bad':(rev>(u.inCost||0)?'good':''));
   if(u.auto) tryStart(c,u);
 }
 
@@ -764,7 +1271,7 @@ function monthClose(y,m){
     else if(a.cash<0){ const od=-a.cash*0.02; a.cash-=od; book(a,'intx',od); if(a.id==='P') expAdd('interest',od); logm(`${a.id==='P'?'Personal account':coName(a)}: overdraft charge ${rp(od)}.`,'bad'); }
   }
   S.bench.bDep*=1+depRate(h,12)*0.8/12;
-  billFees();
+  billFees(); billOuts();
   for(const c of S.C){
     const uNets={};
     for(const v of c.divs||[]){ const r=divRent(v.reg,h); c.cash-=r; book(c,'opex',r); }
@@ -772,7 +1279,8 @@ function monthClose(y,m){
       const L=BIZ[u.t].lv[u.lv];
       const ox=L.opex*cpi(h)*REG[u.reg].land*(1-0.05*jobQ(c,'ga')); c.cash-=ox; book(c,'opex',ox);
       const mc=monCost(c,u); c.cash-=mc; book(c,'mon',mc);
-      const dp=Math.min(u.book,u.cap/48); if(dp>0){ u.book-=dp; book(c,'dep',dp); }
+      if(u.t==='bpr'){ const yy=yearOf(h), crisis=(yy===2008||yy===2009||yy===2020||yy===2021)?2:1; if(rnd()<0.05*crisis*(1-0.5*jobQ(c,'risk'))*(1-0.4*fnScore(c,'fin')/100)){ const bl=Math.round(u.cap*(0.02+0.06*rnd())); c.cash-=bl; book(c,'loss',bl); um(u).cost+=bl; logm(`${coName(c)} · BPR in ${REG[u.reg].n}: a batch of loans went bad (kredit macet). Write-off ${rp(bl)}. Risk management and a strong finance team reduce this.`,'bad'); } }
+      const dp=Math.min(u.book,u.cap*(BIZ[u.t].depr??1)/48); if(dp>0){ u.book-=dp; book(c,'dep',dp); }
       if(u.w>0 && u.sal<umr(u.reg,h) && rnd()<0.07*(1-0.8*fnScore(c,'hr')/100)){
         const short=(umr(u.reg,h)-u.sal)*u.w*6, fine=Math.round(short*1.1);
         c.cash-=fine; book(c,'fine',fine); u.sal=umr(u.reg,h);
@@ -802,7 +1310,7 @@ function monthClose(y,m){
       if(c.form==='UD' && py>=2022){ const before=c.ytd.rev-c.mon.rev; base=Math.max(0,c.ytd.rev-Math.max(500e6,before)); }
       const t=base*reg.r; if(t>0){ c.cash-=t; book(c,'tax',t); }
     } else {
-      const p=c.mon; book(c,'tn',p.rev-p.cogs-p.wage-p.opex-p.mon-p.dep-p.intx+(p.mfi||0)-(p.mfee||0));
+      const p=c.mon; book(c,'tn',p.rev-p.cogs-p.wage-p.opex-p.mon-p.dep-p.intx+(p.mfi||0)-(p.mfee||0)-(p.outs||0));
     }
     const names={}; for(const key in c.srcM||{}){ const id=key.split(':')[1]; if(id){ const x=acct(id); names[id]=x?coName(x):'(closed company)'; } }
     c.hist.push({k:py*100+pm+1,...c.mon,net:netOf(c.mon),bs:balanceOf(c),src:c.srcM||{},units:uNets,names}); c.srcM={};
@@ -835,7 +1343,7 @@ function corpRisks(c,h){
   f('qc',20e6*cpi(h)*lv,0.02,'a K3 workplace safety inspection found violations.');
   f('ir',10e6*cpi(h)*lv,0.02,'a labour dispute went to the Disnaker mediator.');
 }
-function livingCost(h){ return 1.5e6*cpi(h)*(0.55+0.45*umr(S.home,h)/umr('jkt',h)); }
+function livingCost(h){ return 1.5e6*cpi(h)*(0.55+0.45*umr(S.home,h)/umr('3171',h)); }
 function yearClose(y){
   for(const c of S.C){
     let taxable=c.ytd.tn;
@@ -936,6 +1444,7 @@ function forcedLiquidation(a){
 
 /* ---------- market orders */
 function placeOrder(aid,sym,side,lots){
+  if(!listed(sym,S.h)) return `${sym} (${STK[sym].n}) only lists on the exchange on ${fkey(STK[sym].ipo)}.`;
   if(!(lots>0)) return 'Enter a number of lots.';
   if(isOpen(S.h)) return execOrder(aid,sym,side,lots);
   S.orders.push({id:nid('O'),a:aid,s:sym,side,lots,h:S.h});
@@ -1017,13 +1526,14 @@ function foundCompany(o){
 function addUnit(cid,t,reg){
   const c=acct(cid), b=BIZ[t], L=b.lv[0];
   if(!allowed(t,reg)) return `${b.n} is not possible in ${REG[reg].n}. ${whyNot(t)}.`;
+  { const g=bizGate(c,t); if(g) return g; }
   const cost=L.setup*cpi(S.h)*landAdj(reg);
   if(c.cash<cost) return `${coName(c)} needs ${rp(cost)} in its account. Inject capital or take a loan first.`;
   c.cash-=cost;
-  const u={id:nid('U'),t,reg,lv:0,w:L.staff,sal:umr(reg,S.h),book:cost,cap:cost,auto:true,ph:'idle',d:0,df:1};
+  const u={id:nid('U'),t,reg,lv:0,w:L.staff,sal:Math.round(umr(reg,S.h)*(b.wage||1)/1000)*1000,book:cost,cap:cost,auto:true,ph:'idle',d:0,df:1};
   c.units.push(u);
   const d=km(c.reg,reg);
-  logm(`${coName(c)} opened ${b.n} (${L.l}) in ${REG[reg].n} for ${rp(cost)}${isSpec(t,reg)?', a regional specialty':''}. ${d?`${NF.format(d)} km from the office: monitoring ${rp(monCost(c,u))} a month.`:`Monitoring ${rp(monCost(c,u))} a month.`}`,'good');
+  logm(`${coName(c)} opened ${b.n} (${L.l}) in ${REG[reg].n} for ${rp(cost)}${isSpec(t,reg)?', a regional specialty':b.kind==='retail'&&retailMult(t,reg)>1.05?', a strong local market':''}. ${d?`${NF.format(d)} km from the office: monitoring ${rp(monCost(c,u))} a month.`:`Monitoring ${rp(monCost(c,u))} a month.`}`,'good');
   if(b.kind==='cycle') tryStart(c,u);
   return null;
 }
@@ -1209,7 +1719,7 @@ function vHome(){
       </div></div></section>
   </div>
   <section class="panel"><div class="panel-h"><h3>Your companies</h3><button class="btn pri sm" data-act="found">Found a company</button></div>
-    <div class="panel-b">${has?LH(()=>coTable()):`<p class="note">You have no companies yet. Found a <b>UD</b>, <b>CV</b> or <b>PT</b> with its office in any regency, then open businesses anywhere in Indonesia. ${esc(H.n)} specialises in ${H.spec.map(k=>BIZ[k].n).join(', ')}. Every unit adds a monthly monitoring cost that grows with its distance from the company's office.</p>`}</div></section>
+    <div class="panel-b">${has?LH(()=>coTable()):`<p class="note">You have no companies yet. Found a <b>UD</b>, <b>CV</b> or <b>PT</b> with its office in any regency, then open businesses anywhere in Indonesia. ${esc(H.n)} ${H.spec.length?'specialises in '+H.spec.map(k=>BIZ[k].n).join(', '):'has no resource specialty, but shops and services work anywhere'}. Every unit adds a monthly monitoring cost that grows with its distance from the company's office.</p>`}</div></section>
   <section class="panel"><div class="panel-h"><h3>Latest entries</h3><button class="btn ghost sm" data-act="tab" data-v="log">Full ledger</button></div>
     <div class="panel-b">${LH(()=>ledger(8),'div','ledger')}</div></section>
   <section class="panel"><div class="panel-h"><h3>How to play</h3></div><div class="panel-b"><p class="note">
@@ -1316,7 +1826,7 @@ function coDetail(c){
 }
 function plTable(c){
   const cols=[['This month',c.mon],['Year to date',c.ytd]]; if(c.ytdPrev) cols.push([String(c.ytdPrev.y),c.ytdPrev]);
-  const lines=[['Revenue','rev',1],['Cost of goods / inputs','cogs',-1],['Wages, BPJS, THR','wage',-1],['Rent & operating','opex',-1],['Monitoring & travel','mon',-1],['Depreciation','dep',-1],['Interest & fees','intx',-1],['Other income (interest, dividends, gains)','other',1],['Management fees received','mfi',1],['Management fees paid','mfee',-1],['Income tax','tax',-1],['Fines','fine',-1],['Fraud losses','loss',-1]];
+  const lines=[['Revenue','rev',1],['Cost of goods / inputs','cogs',-1],['Wages, BPJS, THR','wage',-1],['Rent & operating','opex',-1],['Monitoring & travel','mon',-1],['Depreciation','dep',-1],['Interest & fees','intx',-1],['Other income (interest, dividends, gains)','other',1],['Management fees received','mfi',1],['Management fees paid','mfee',-1],['Outsourcing fees','outs',-1],['Income tax','tax',-1],['Fines','fine',-1],['Fraud & credit losses','loss',-1]];
   return `<div class="tbl-wrap"><table><thead><tr><th></th>${cols.map(x=>`<th class="n">${x[0]}</th>`).join('')}</tr></thead><tbody>
   ${lines.filter(([, f])=>cols.some(x=>Math.abs(x[1][f]||0)>0.5)||f==='rev').map(([l,f,s])=>`<tr><td>${l}</td>${cols.map(x=>`<td class="n">${x[1][f]?(s<0?'−':'')+rp(x[1][f]).replace('−',''):'—'}</td>`).join('')}</tr>`).join('')}
   <tr><td><b>Net profit</b></td>${cols.map(x=>{const n=netOf(x[1]);return `<td class="n ${cls(n)}"><b>${rp(n)}</b></td>`;}).join('')}</tr>
@@ -1328,16 +1838,16 @@ function unitCard(c,u){
     ? L(()=>{ const hr=dOf(S.h).getUTCHours(); if(u.w<=0) return ['Closed: no staff','down']; return [(hr>=b.open[0]&&hr<b.open[1]?'Open now':'Closed for the night')+' · sales this month '+rp(u.mrev||0),'']; })
     : L(()=> u.ph==='grow' ? [`Growing · day ${u.d} of ${b.cycle} · inputs ${rp(u.inCost||0)}`,''] : [u.wait?'Idle: waiting for money in the company account to restock':'Idle', u.wait?'down':'muted']);
   return `<div class="unit">
-    <div><h4>${b.n} · ${Lv.l} ${isSpec(u.t,u.reg)?'<span class="chip good">Specialty +25%</span>':''}</h4><div class="meta">${REG[u.reg].n}, ${esc(provOf(u.reg))} · needs ${Lv.staff} worker${Lv.staff>1?'s':''} · UMR here ${L(()=>rp(umr(u.reg,S.h),true))}</div>
+    <div><h4>${b.n} · ${Lv.l} ${boostChip(u.t,u.reg)}</h4><div class="meta">${REG[u.reg].n}, ${esc(provOf(u.reg))} · needs ${Lv.staff} worker${Lv.staff>1?'s':''} · UMR here ${L(()=>rp(umr(u.reg,S.h),true))}</div>
       <div class="meta">${L(()=>{const o=officeFor(c,u.reg);return `Monitoring ${rp(monCost(c,u))}/month from ${officeName(c,o)}${o.d?', '+NF.format(o.d)+' km':''} · leakage ${pc(leak(c,u),1)}`;})}</div>
       <div class="meta">${status}</div>
       <div class="meta">${L(()=>{const t=unitT12(u); if(!t.n) return 'No full month of results yet'; const nr=spinReady(u); return [`Last ${t.n} month${t.n>1?'s':''}: net ${rp(t.net)}${c.form==='PT'?(nr?' · not ready to spin off':' · successful: ready to spin off'):''}`, t.net<0?'down':!nr&&c.form==='PT'?'up':''];})}</div>
       ${b.kind==='cycle'?LH(()=>`<i style="width:${Math.round(100*(u.ph==='grow'?u.d:0)/b.cycle)}%"></i>`,'div','prog'):''}
-      ${b.kind==='cycle'?`<div class="meta">${L(()=>u.last?`Last harvest ${fdate(u.last.h)}: ${NF.format(u.last.kg)} kg at ${rp(u.last.price,true)} = ${rp(u.last.rev)} (inputs ${rp(u.last.cost)})`:'No harvest yet.')}</div>`:''}
+      ${b.kind==='cycle'?`<div class="meta">${L(()=>u.last?`Last harvest ${fdate(u.last.h)}: ${NF.format(u.last.kg)} ${unitOf(b)} at ${rp(u.last.price,true)} = ${rp(u.last.rev)} (inputs ${rp(u.last.cost)})`:'No harvest yet.')}</div>`:''}
     </div>
-    <div class="num" style="text-align:right">${L(()=>'Book '+rp(u.book))}<div class="meta">${L(()=>'Productivity '+pc(staffF(u)*moraleF(u,S.h)*specF(u)*mgmtF(c)*(1-leak(c,u)),0))}</div></div>
+    <div class="num" style="text-align:right">${L(()=>'Book '+rp(u.book))}<div class="meta">${L(()=>'Productivity '+pc(staffF(u)*moraleF(u,S.h)*unitBoost(u)*mgmtF(c)*(1-leak(c,u)),0))}</div></div>
     <div class="ctl">
-      <label class="f">Workers<span class="stepper"><button data-act="w" data-id="${c.id}" data-u="${u.id}" data-v="-1" aria-label="Fewer workers">−</button><span>${u.w}</span><button data-act="w" data-id="${c.id}" data-u="${u.id}" data-v="1" aria-label="More workers">+</button></span></label>
+      <label class="f">Workers<span class="stepper"><button data-act="w" data-id="${c.id}" data-u="${u.id}" data-v="-${wStep(u)}" aria-label="Fewer workers">−</button><span>${u.w}</span><button data-act="w" data-id="${c.id}" data-u="${u.id}" data-v="${wStep(u)}" aria-label="More workers">+</button></span></label>
       <label class="f">Wage / worker / month<input type="number" id="sal-${u.id}" data-chg="sal" data-id="${c.id}" data-u="${u.id}" min="0" step="50000" value="${Math.round(u.sal)}" style="width:150px"></label>
       ${b.kind==='cycle'?`<label class="check"><input type="checkbox" data-chg="auto" data-id="${c.id}" data-u="${u.id}" ${u.auto?'checked':''}> Auto-restock</label>`:''}
       ${b.kind==='cycle'&&u.ph!=='grow'?`<button class="btn sm" data-act="startcyc" data-id="${c.id}" data-u="${u.id}">Start cycle (${rp(Lv.input*cpi(S.h)*(b.land?landAdj(u.reg):1))})</button>`:''}
@@ -1405,11 +1915,11 @@ function vMarket(){
     <div class="panel-b">${LH(()=>tickerTable())}
     <p class="note">Prices are approximate, split-adjusted reconstructions anchored on historical year-end closes and major turning points; daily moves in between are simulated. Fees: buy 0,15%, sell 0,15% + 0,1% final tax on the sale value.</p></div></section>
   <div style="display:flex;flex-direction:column;gap:20px;min-width:0">
-  <section class="panel"><div class="panel-h"><div><h3>${sym} · ${esc(st.n)}</h3><div class="note">${esc(st.sec)}${st.y?` · dividend yield about ${pc(st.y,1)}, paid mid-June`:''}</div></div>
+  <section class="panel"><div class="panel-h"><div><h3>${sym} · ${esc(st.n)}</h3><div class="note">${esc(st.sec)}${IDX30.has(sym)?' · IDX30':''}${st.y?` · dividend yield about ${pc(st.y,1)}, paid mid-June`:''}${st.ipo?` · listed ${fkey(st.ipo)}`:''}</div></div>
       <div class="acct-tabs">${['1M','6M','1Y','5Y','ALL'].map(r=>`<button data-act="range" data-v="${r}" aria-pressed="${S.sel.range===r}">${r}</button>`).join('')}</div></div>
-    <div class="panel-b"><div class="big" style="font-size:2rem">${L(()=>NF.format(quote(sym,S.h)))} ${L(()=>{const q=quote(sym,S.h),p=prevClose(sym,S.h);return [sgn(q/p-1,x=>pc(x)),cls(q-p)];},'span','')}</div>
-    <canvas class="chart" data-chart="sym" aria-label="Price chart"></canvas></div></section>
-  ${sym==='IHSG'?'':`<section class="panel"><div class="panel-h"><h3>Trade ${sym}</h3>${acctPicker('tradeacct')}</div><div class="panel-b">
+    <div class="panel-b">${listed(sym,S.h)?`<div class="big" style="font-size:2rem">${L(()=>NF.format(quote(sym,S.h)))} ${L(()=>{const q=quote(sym,S.h),p=prevClose(sym,S.h);return [sgn(q/p-1,x=>pc(x)),cls(q-p)];},'span','')}</div>
+    <canvas class="chart" data-chart="sym" aria-label="Price chart"></canvas>`:`<p class="note">Not listed yet. ${esc(st.n)} goes public on ${fkey(st.ipo)}; it can be traded from then.</p>`}</div></section>
+  ${sym==='IHSG'||!listed(sym,S.h)?'':`<section class="panel"><div class="panel-h"><h3>Trade ${sym}</h3>${acctPicker('tradeacct')}</div><div class="panel-b">
     <div class="fields"><label class="f">Lots<input type="number" id="lots" min="1" step="1" value="1"></label></div>
     <p class="note">${L(()=>{ const a=acct(S.sel.acct); const n=+document.getElementById('lots')?.value||0; const v=n*lotSize(S.h)*quote(sym,S.h); const hd=a?.hold[sym]; return `≈ ${rp(v*1.0015)} incl. fee · ${acctName(S.sel.acct)} account ${rp(a?.cash||0)}`+(hd?` · holds ${NF.format(hd.sh)} shares (avg ${NF.format(Math.round(hd.cost/hd.sh))})`:''); })}</p>
     <div class="btns"><button class="btn pri" data-act="buy">Buy</button><button class="btn" data-act="sell">Sell</button></div>
@@ -1418,9 +1928,11 @@ function vMarket(){
   </div></div>`;
 }
 function tickerTable(){
-  const rows=['IHSG',...SYMS].map(s=>{ const q=quote(s,S.h), p=prevClose(s,S.h), ch=q/p-1;
-    const yi=tdLE((yearOf(S.h)-1)*10000+1231), ytd=q/MK[s][yi]-1;
-    return `<tr class="click ${S.sel.sym===s?'sel':''}" data-act="sym" data-v="${s}"><td><b>${s}</b><div class="muted" style="font-size:.75rem">${esc(STK[s]?.n||'Composite index')}</div></td><td class="n">${s==='IHSG'?q.toLocaleString('id-ID',{minimumFractionDigits:2}):NF.format(q)}</td><td class="n ${cls(ch)}">${sgn(ch,x=>pc(x))}</td><td class="n ${cls(ytd)}">${sgn(ytd,x=>pc(x,1))}</td></tr>`; }).join('');
+  const syms=['IHSG',...SYMS.filter(s=>listed(s,S.h)),...SYMS.filter(s=>!listed(s,S.h))];
+  const rows=syms.map(s=>{ if(!listed(s,S.h)) return `<tr class="click muted ${S.sel.sym===s?'sel':''}" data-act="sym" data-v="${s}"><td><b>${s}</b><div style="font-size:.75rem">${esc(STK[s].n)}</div></td><td colspan="3" class="n" style="font-size:.78rem">IPO ${fkey(STK[s].ipo)}</td></tr>`;
+    const q=quote(s,S.h), p=prevClose(s,S.h), ch=q/p-1;
+    const yi=Math.max(tdLE((yearOf(S.h)-1)*10000+1231),STK[s]?.ipo?tdLE(STK[s].ipo):0), ytd=q/MK[s][yi]-1;
+    return `<tr class="click ${S.sel.sym===s?'sel':''}" data-act="sym" data-v="${s}"><td><b>${s}</b><div class="muted" style="font-size:.75rem">${esc(STK[s]?.n||'Composite index')}${IDX30.has(s)?'':s==='IHSG'?'':' · ex-IDX30'}</div></td><td class="n">${s==='IHSG'?q.toLocaleString('id-ID',{minimumFractionDigits:2}):NF.format(q)}</td><td class="n ${cls(ch)}">${sgn(ch,x=>pc(x))}</td><td class="n ${cls(ytd)}">${sgn(ytd,x=>pc(x,1))}</td></tr>`; }).join('');
   return `<div class="tbl-wrap"><table><thead><tr><th>Code</th><th class="n">Last</th><th class="n">Day</th><th class="n">YTD</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 function portfolio(){
@@ -1513,7 +2025,7 @@ function drawCharts(){
   document.querySelectorAll('canvas[data-chart]').forEach(cv=>{
     const k=cv.dataset.chart;
     if(k==='nw'){ let pts=S.nwh; if(pts.length>600){ const st=Math.ceil(pts.length/600); pts=pts.filter((_,i)=>i%st===0||i===S.nwh.length-1); } pts=pts.concat([[S.h,nwP()]]); lineChart(cv,pts,v=>rp(v).replace('Rp ',''),h=>fdate(h)); }
-    else if(k==='sym'){ const s=S.sel.sym, last=lastFullIdx(S.h), n={'1M':22,'6M':126,'1Y':250,'5Y':1250,'ALL':99999}[S.sel.range]; const a=Math.max(0,last-n), pts=[]; const step=Math.max(1,Math.floor((last-a)/500)); for(let i=a;i<=last;i+=step) pts.push([hK(TD[i]),MK[s][i]]); pts.push([S.h,quote(s,S.h)]); lineChart(cv,pts,v=>NF.format(Math.round(v)),h=>fdate(h)); }
+    else if(k==='sym'){ const s=S.sel.sym, last=lastFullIdx(S.h), n={'1M':22,'6M':126,'1Y':250,'5Y':1250,'ALL':99999}[S.sel.range]; const a=Math.max(0,last-n,STK[s]?.ipo?tdLE(STK[s].ipo):0), pts=[]; const step=Math.max(1,Math.floor((last-a)/500)); for(let i=a;i<=last;i+=step) pts.push([hK(TD[i]),MK[s][i]]); pts.push([S.h,quote(s,S.h)]); lineChart(cv,pts,v=>NF.format(Math.round(v)),h=>fdate(h)); }
     else if(k==='map') drawMap(cv);
     else if(k==='pie') drawPie(cv);
     else if(k.startsWith('co:')){ const c=acct(k.slice(3)); if(c) barChart(cv,c.hist.concat(c.mon.rev?[{k:yearOf(S.h)*100+dOf(S.h).getUTCMonth()+1,rev:c.mon.rev,net:netOf(c.mon)}]:[])); }
@@ -1556,7 +2068,7 @@ function foundModal(parent){
         <label class="f">Province<select id="fm-prov">${PROVS.map(p=>`<option ${p===st.p?'selected':''}>${esc(p)}</option>`).join('')}</select></label>
         <label class="f">Regency<select id="fm-reg">${regsIn(st.p).map(k=>`<option value="${k}" ${k===st.reg?'selected':''}>${esc(REG[k].n)}${k===S.home?' (your home)':''}</option>`).join('')}</select></label>
       </div>
-      <p class="note">${esc(TYPE_N[r.type])} · ${st.reg===S.home?'your home base':NF.format(km(S.home,st.reg))+' km from your home base: you are less effective as its director'} · UMR ${rp(umr(st.reg,h),true)} · specialties: ${r.spec.map(k=>`<span class="chip good">${BIZ[k].n}</span>`).join(' ')}. Business units are monitored from here.</p>
+      <p class="note">${esc(TYPE_N[r.type])} · ${st.reg===S.home?'your home base':NF.format(km(S.home,st.reg))+' km from your home base: you are less effective as its director'} · UMR ${rp(umr(st.reg,h),true)} · specialties: ${specChips(r)}. Business units are monitored from here.</p>
       <div class="fields">
         <label class="f">Capital you put in<input type="number" id="fm-cap" min="0" step="1000000" value="${st.cap}"></label>
         ${f==='CV'?`<label class="f">Family partner's share (%)<input type="number" id="fm-pct" min="1" max="49" value="${st.pct}"></label>`:''}
@@ -1605,25 +2117,28 @@ function foundModal(parent){
 function unitModal(cid){
   const c=acct(cid); const st={reg:c.reg,p:REG[c.reg].prov,t:null};
   const draw=el=>{
-    const r=REG[st.reg], keys=Object.keys(BIZ), ok=keys.filter(t=>allowed(t,st.reg));
-    if(!st.t||!ok.includes(st.t)) st.t=ok.find(t=>isSpec(t,st.reg))||ok[0];
-    const b=BIZ[st.t], Lv=b.lv[0], sp=isSpec(st.t,st.reg)?SPEC_BONUS:1, cost=Lv.setup*cpi(S.h)*landAdj(st.reg), wage=umr(st.reg,S.h), d=km(c.reg,st.reg);
+    const r=REG[st.reg], keys=Object.keys(BIZ), ok=keys.filter(t=>allowed(t,st.reg)), free=ok.filter(t=>!bizGate(c,t));
+    if(!st.t||!ok.includes(st.t)) st.t=free.find(t=>isSpec(t,st.reg))||free[0]||ok[0];
+    const b=BIZ[st.t], Lv=b.lv[0], sp=b.kind==='retail'?retailMult(st.t,st.reg):isSpec(st.t,st.reg)?SPEC_BONUS:1, cost=Lv.setup*cpi(S.h)*landAdj(st.reg), wage=Math.round(umr(st.reg,S.h)*(b.wage||1)/1000)*1000, d=km(c.reg,st.reg), gate=bizGate(c,st.t);
+    const GRP=[['Shops & services',t=>!BIZ[t].tier&&BIZ[t].kind==='retail'],['Farming, fishing & plantations',t=>!BIZ[t].tier&&BIZ[t].kind==='cycle'],['Medium businesses · Usaha Kecil and up',t=>BIZ[t].tier===1],['Large businesses · Usaha Menengah and up',t=>BIZ[t].tier===2]];
+    const card=k=>{const x=BIZ[k], g=bizGate(c,k), m=x.kind==='retail'?retailMult(k,st.reg):1; return `<button type="button" data-t="${k}" aria-pressed="${k===st.t}" ${g?'style="opacity:.55"':''}><b>${x.n}${isSpec(k,st.reg)||m>1.05?' ★':''}${g?' · locked':''}</b><span>${x.blurb}</span></button>`;};
     const body=el.querySelector('#um-body');
     let econ;
     if(b.kind==='retail'){ const rev=Lv.rev*cpi(S.h)*r.dem*sp*30; econ=`Expected sales about <b>${rp(rev)}</b> a month at ${pc(b.margin,0)} gross margin, rent and utilities ${rp(Lv.opex*cpi(S.h)*r.land)} a month.`; }
-    else { const p=commodityPrice(st.t,S.h+b.cycle*24), inp=Lv.input*cpi(S.h)*(b.land?landAdj(st.reg):1), kg=Lv.yield*sp; econ=`Each ${b.cycle}-day cycle costs about <b>${rp(inp)}</b> in inputs and yields around ${NF.format(Math.round(kg))} kg of ${b.prod}. At today's price outlook (${rp(p,true)}/kg) that is <b>${rp(kg*p)}</b> before wages. Failure risk ${pc(b.fail,0)} per cycle.`; }
+    else { const p=commodityPrice(st.t,S.h+b.cycle*24), inp=Lv.input*cpi(S.h)*(b.land?landAdj(st.reg):1), kg=Lv.yield*sp; econ=`Each ${b.cycle}-day cycle costs about <b>${rp(inp)}</b> in inputs and yields around ${NF.format(Math.round(kg))} ${unitOf(b)} of ${b.prod}. At today's price outlook (${rp(p,true)}/${unitOf(b)}${b.usd?`, from about US$ ${NF.format(Math.round(tblAt(USDP[b.usd],S.h)))} on world markets`:''}) that is <b>${rp(kg*p)}</b> before wages. Failure risk ${pc(b.fail,0)} per cycle.`; }
     body.innerHTML=`
       <div class="fields">
         <label class="f">Province<select id="um-prov">${PROVS.map(p=>`<option ${p===st.p?'selected':''}>${esc(p)}</option>`).join('')}</select></label>
         <label class="f">Regency<select id="um-reg">${regsIn(st.p).map(k=>`<option value="${k}" ${k===st.reg?'selected':''}>${esc(REG[k].n)}${k===c.reg?' (office)':''}</option>`).join('')}</select></label>
       </div>
-      <p class="note">${esc(TYPE_N[r.type])} · ${d?NF.format(d)+' km from the office in '+esc(REG[c.reg].n):'where the office is'} · UMR ${rp(wage,true)} · specialties: ${r.spec.map(k=>`<span class="chip good">${BIZ[k].n}</span>`).join(' ')}</p>
-      <div class="biz-pick" role="group" aria-label="Business type">${ok.map(k=>{const x=BIZ[k]; return `<button type="button" data-t="${k}" aria-pressed="${k===st.t}"><b>${x.n}${isSpec(k,st.reg)?' ★':''}</b><span>${x.blurb}</span></button>`;}).join('')}</div>
-      <p class="note">★ marks this regency's specialties. ${keys.length-ok.length} other businesses need farmland or a regency that specialises in them; the Regions tab shows where.</p>
+      <p class="note">${esc(TYPE_N[r.type])} · ${d?NF.format(d)+' km from the office in '+esc(REG[c.reg].n):'where the office is'} · UMR ${rp(wage,true)} · specialties: ${specChips(r)}</p>
+      ${GRP.map(([lab,f])=>{const ks=ok.filter(f); return ks.length?`<div class="eyebrow">${lab}</div><div class="biz-pick" role="group" aria-label="${lab}">${ks.map(card).join('')}</div>`:'';}).join('')}
+      <p class="note">★ marks this regency's specialties and strong local markets. Shops and services open anywhere; how well they sell depends on the regency. ${keys.length-ok.length} resource businesses need farmland or the resource itself; the Regions tab shows where.</p>
+      ${gate?`<p class="note warn">${esc(gate)}</p>`:''}
       <div class="rows">
         <div class="row"><span class="k">Setup (${Lv.l})</span><span class="v">${rp(cost)}</span></div>
-        <div class="row"><span class="k">Workers needed</span><span class="v">${Lv.staff} × ${rp(wage,true)}</span></div>
-        <div class="row"><span class="k">Regional specialty</span><span class="v ${sp>1?'up':''}">${sp>1?'Yes, +25% output':'No'}</span></div>
+        <div class="row"><span class="k">Workers needed</span><span class="v">${NF.format(Lv.staff)} × ${rp(wage,true)}${b.wage?` (${String(b.wage).replace('.',',')}× UMR)`:''}</span></div>
+        <div class="row"><span class="k">${b.kind==='retail'?'Local demand':'Regional specialty'}</span><span class="v ${sp>1.01?'up':sp<0.99?'down':''}">${b.kind==='retail'?'×'+sp.toFixed(2).replace('.',','):sp>1?'Yes, +25% output':'No'}</span></div>
         <div class="row"><span class="k">Monitoring from ${esc(officeName(c,officeFor(c,st.reg)))}</span><span class="v">${rp(monCostR(c,st.reg))} / month</span></div>
         <div class="row"><span class="k">Expected leakage with this board</span><span class="v ${leakR(c,st.reg)>0.08?'down':''}">${pc(leakR(c,st.reg),1)}</span></div>
         <div class="row"><span class="k">Company account</span><span class="v ${c.cash<cost?'down':''}">${rp(c.cash)}</span></div>
@@ -1651,7 +2166,7 @@ function menuModal(){
 
 /* ---------- Setup screen */
 function renderSetup(){
-  const st={year:2005,cap:500e6,living:true,home:'jkt',name:'Juragan'};
+  const st={year:2005,cap:500e6,living:true,home:'3171',name:'Juragan'};
   const years=[[2005,'Post-crisis recovery, fuel hike looming'],[2008,'Right before the global crash'],[2010,'Commodity boom'],[2013,'Taper tantrum year'],[2016,'Tax amnesty, low rates'],[2020,'COVID-19 shock']];
   const caps=[[100e6,'Warung money'],[500e6,'Family savings'],[2e9,'Sold the family land'],[10e9,'Old money']];
   const draw=()=>{
@@ -1664,12 +2179,12 @@ function renderSetup(){
       <div style="display:flex;flex-direction:column;gap:8px"><div class="eyebrow">Start date</div><div class="opt-row" role="group" aria-label="Start year">${years.map(([y,t])=>`<button type="button" data-y="${y}" aria-pressed="${st.year===y}"><b>3 Jan ${y}</b><span>${t}</span></button>`).join('')}</div></div>
       <div style="display:flex;flex-direction:column;gap:8px"><div class="eyebrow">Home base</div>
         <select id="su-home" style="max-width:420px">${PROVS.map(p=>`<optgroup label="${esc(p)}">${regsIn(p).map(k=>`<option value="${k}" ${k===st.home?'selected':''}>${esc(REG[k].n)}</option>`).join('')}</optgroup>`).join('')}</select>
-        <p class="note">${esc(r.n)}, ${esc(provOf(st.home,h0))} · ${TYPE_N[r.type]} · UMR ${rp(umr(st.home,h0),true)} in ${st.year} · specialties: ${r.spec.map(k=>`<span class="chip good">${BIZ[k].n}</span>`).join(' ')}. This is where you live: it sets your living costs, and you direct companies less well the farther their offices are from home. Each company picks its own office when you found it.</p></div>
+        <p class="note">${esc(r.n)}, ${esc(provOf(st.home,h0))} · ${TYPE_N[r.type]} · UMR ${rp(umr(st.home,h0),true)} in ${st.year} · specialties: ${specChips(r)}. This is where you live: it sets your living costs, and you direct companies less well the farther their offices are from home. Each company picks its own office when you found it.</p></div>
       <div style="display:flex;flex-direction:column;gap:8px"><div class="eyebrow">Capital from your parents, in rupiah of ${st.year}</div><div class="opt-row" role="group" aria-label="Seed capital">${caps.map(([v,t])=>`<button type="button" data-c="${v}" aria-pressed="${st.cap===v}"><b>${rp(v)}</b><span>${t} · ≈ ${rp(v/(cpi(h0)))} in 2005 money</span></button>`).join('')}</div></div>
-      <label class="check"><input type="checkbox" id="su-liv" ${st.living?'checked':''}> Pay my own living costs (about ${rp(1.5e6*cpi(h0)*(0.55+0.45*umr(st.home,h0)/umr('jkt',h0)))} a month in ${esc(r.n)}, rising with inflation)</label>
+      <label class="check"><input type="checkbox" id="su-liv" ${st.living?'checked':''}> Pay my own living costs (about ${rp(1.5e6*cpi(h0)*(0.55+0.45*umr(st.home,h0)/umr('3171',h0)))} a month in ${esc(r.n)}, rising with inflation)</label>
       <div class="callout">The capital is family money, so there is no one to repay. Grow it into a group of companies, spin off the units that do well, move assets between companies by inbreng and merge what belongs together. When you retire, or history runs out on 31 December 2024, the game tallies your net worth against what the money would have earned in a deposito.</div>
       <div class="btns"><button class="btn pri" id="su-go" style="padding:11px 22px;font-size:1rem">Begin on 3 January ${st.year}</button></div>
-      <p class="note">Market data is an approximate reconstruction of IHSG and seven blue chips (2005–2024). Macro series, minimum wages, commodity prices and company law follow the official history but are simplified for play.</p>
+      <p class="note">Market data is an approximate reconstruction of IHSG, the 30 IDX30 stocks and Gudang Garam (2005–2024), with later listings opening on their IPO dates. Macro series, minimum wages, commodity prices and company law follow the official history but are simplified for play.</p>
     </div>`;
     const keep=()=>{ st.name=app.querySelector('#su-name').value; };
     app.querySelectorAll('[data-y]').forEach(b=>b.onclick=()=>{ keep(); st.year=+b.dataset.y; draw(); });
@@ -1694,7 +2209,7 @@ const ACT={
   found:d=>foundModal(d.parent),
   openco:d=>{ S.sel.co=d.id; S.tab='biz'; render(); },
   addunit:d=>unitModal(d.id),
-  w:d=>{ const c=acct(d.id), u=c.units.find(x=>x.id===d.u), n=u.w+(+d.v); if(n<0) return err('There are no workers left to let go.'); if(n>60) return err('Sixty workers is the most one unit can use. Expand the unit or open another.'); u.w=n; render(); },
+  w:d=>{ const c=acct(d.id), u=c.units.find(x=>x.id===d.u), mx=Math.max(60,2*BIZ[u.t].lv[u.lv].staff); if(u.w<=0&&+d.v<0) return err('There are no workers left to let go.'); const n=Math.max(0,u.w+(+d.v)); if(n>mx) return err(`${mx} workers is the most this unit can use. Expand the unit or open another.`); u.w=n; render(); },
   startcyc:d=>{ const c=acct(d.id), u=c.units.find(x=>x.id===d.u); if(!tryStart(c,u)){ render(); return err(`${coName(c)} needs ${rp(BIZ[u.t].lv[u.lv].input*cpi(S.h)*(BIZ[u.t].land?landAdj(u.reg):1))} in its account to buy inputs for a new cycle; it holds ${rp(c.cash)}.`); } render(); },
   upgrade:d=>{ const c=acct(d.id), u=c.units.find(x=>x.id===d.u), cost=upgradeCost(u); if(c.cash<cost) return err(`Not enough capital to expand. ${coName(c)} needs ${rp(cost)} and holds ${rp(c.cash)}. Inject capital or take a working-capital loan first.`); c.cash-=cost; u.book+=cost; u.cap+=cost; u.lv++; const Lv=BIZ[u.t].lv[u.lv]; logm(`${coName(c)} expanded ${BIZ[u.t].n} in ${REG[u.reg].n} to ${Lv.l} for ${rp(cost)}. It now needs ${Lv.staff} workers.`,'good'); render(); },
   sellunit:d=>{ const c=acct(d.id), u=c.units.find(x=>x.id===d.u); askConfirm(`Sell ${BIZ[u.t].n} (${BIZ[u.t].lv[u.lv].l}) in ${esc(REG[u.reg].n)}? You recover about ${rp(u.book*0.5)}, half its book value. Any crop or stock in progress is lost.`,'Sell',()=>{ c.cash+=u.book*0.5; book(c,'opex',u.book*0.5); c.units.splice(c.units.indexOf(u),1); logm(`${coName(c)} sold ${BIZ[u.t].n} in ${REG[u.reg].n} for ${rp(u.book*0.5)}.`); render(); }); },
@@ -1706,6 +2221,8 @@ const ACT={
   cotab:d=>{ S.sel.cotab=d.v; render(); },
   opendiv:d=>divModal(d.id),
   newdept:d=>deptModal(d.id),
+  outsrc:d=>outModal(d.id,d.v),
+  endout:d=>{ const c=acct(d.id), o=(c.outs||{})[d.v]; if(!o) return; askConfirm(`End the contract with ${esc(o.name)} for ${esc(JOBS[d.v].n.toLowerCase())}? The job is unhandled until a team or another vendor takes it.`,'End contract',()=>{ endOut(c,d.v); render(); }); },
   editdept:d=>deptModal(d.id,d.v),
   closedept:d=>{ const c=acct(d.id), t=(c.depts||[]).find(x=>x.id===d.v); if(!t) return; askConfirm(`Close ${esc(t.name)}? Its ${t.staff+(t.head?1:0)} people are let go with severance and its jobs become unhandled.`,'Close team',()=>{ closeDept(c,t); render(); }); },
   closediv:d=>{ const c=acct(d.id), v=(c.divs||[]).find(x=>x.id===d.v); if(!v) return; const sev=v.head&&v.head.src==='pro'?2*v.head.sal:0;
@@ -1825,19 +2342,34 @@ function spinCheck(c,u){
   const why=spinReady(u); if(why) return `${BIZ[u.t].n} in ${REG[u.reg].n} is not successful enough to spin off yet. ${why}`;
   return null;
 }
-function spinOff(c,u,name,cashIn){
+function spinOff(c,u,o){
   const h=S.h, law=lawPT(h), b=BIZ[u.t];
   const pre=spinCheck(c,u); if(pre) return pre;
-  name=(name||'').trim(); if(!name) return 'Give the new subsidiary a name.';
+  const name=(o.name||'').trim(); if(!name) return 'Give the new subsidiary a name.';
   if(S.C.some(x=>x.name.toLowerCase()===name.toLowerCase())) return `You already have a company called ${name}. Pick another name.`;
-  cashIn=Math.max(0,+cashIn||0); const fee=spinFee(h), total=(u.book+cashIn)/0.99;
+  const cashIn=Math.max(0,+o.cash||0), pct=clamp((+o.pct||1)/100,0.01,0.49), partner=o.partner||'F';
+  if(partner===c.id) return `${coName(c)} is already the main shareholder. Pick a different second shareholder.`;
+  const fee=spinFee(h), total=(u.book+cashIn)/(1-pct), pcap=total*pct;
   if(total<law.minPaid) return `Paid-up capital would be ${rp(total)}, below the ${rp(law.minPaid,true)} minimum under ${law.law}. Add working capital.`;
   if(c.cash<cashIn+fee) return `Not enough capital in ${coName(c)}. The spin-off needs ${rp(cashIn+fee)} (working capital ${rp(cashIn)} plus notary, ministry and announcement fees ${rp(fee)}), but the account holds ${rp(c.cash)}.`;
+  if(partner!=='F'){ const pa=acct(partner); if(!pa) return 'Choose the second shareholder.'; if(partner!=='P'&&pa.form!=='PT') return 'Only a regular PT can hold shares in another PT.'; if(pa.cash<pcap) return `${acctName(partner)} needs ${rp(pcap)} for its ${pc(pct,0)} stake and holds ${rp(pa.cash)}. Lower the share.`; }
+  if(!o.dir) return 'Choose the Direktur Utama. A PT cannot be registered without a director (UU 40/2007 Art. 92).';
+  if(!o.kom) return 'Choose a commissioner. A PT needs at least one (UU 40/2007 Art. 108).';
+  if(o.dir==='P'&&o.kom==='P') return 'You cannot be both director and commissioner of the same PT. Pick someone else for one of the two seats.';
+  const tmp={id:'C'+S.nid,reg:c.reg,hired:[],level:sizeOf(total,0,h)};
+  const picks=[[o.dir,'dir'],[o.kom,'kom']].map(([k,r])=>pickBoard(tmp,k,r));
+  if(picks.some(p=>!p)) return 'That candidate is no longer available this month. Pick again.';
+  const hf=picks.reduce((s,p)=>s+(p.fee||0),0);
+  if(hf>=cashIn+pcap) return `The headhunter fees of ${rp(hf)} are more than the cash the new PT starts with (${rp(cashIn+pcap)}). Add working capital, or pick yourself or a relative.`;
   c.cash-=cashIn+fee; book(c,'opex',fee); c.units.splice(c.units.indexOf(u),1);
-  const shares=Math.max(1,Math.round(total/1000)), own={[c.id]:Math.round(shares*0.99)}; own.F=shares-own[c.id];
+  if(partner!=='F') acct(partner).cash-=pcap;
+  const shares=Math.max(1,Math.round(total/1000)), own={[c.id]:Math.round(shares*(1-pct))}; own[partner]=shares-own[c.id];
   const n=Object.assign(newAcct(),{id:nid('C'),name,form:'PT',parent:c.id,own,shares,paidIn:total,retained:0,dir:0,autoUMR:c.autoUMR,units:[u],mon:blankPL(),ytd:blankPL(),hist:[],taxDue:0,prevTurnover:null,founded:h,hired:[]});
-  n.reg=c.reg; n.depts=[]; n.divs=[]; n.pay={...(c.pay||PAY_DEF())}; n.mfees={}; n.cash=cashIn+total*0.01; n.board=defaultBoard(n); n.rups={...c.rups}; S.C.push(n); S.sel.co=n.id; updateLevel(n,true);
-  logm(`${coName(c)} spun off ${b.n} in ${REG[u.reg].n} as ${coName(n)} (pemisahan, UU 40/2007 Art. 135). Paid-up capital ${rp(total)}: the unit at book value ${rp(u.book)}${cashIn?` plus ${rp(cashIn)} working capital`:''}. ${coName(c)} holds 99%, your family 1%. Fees ${rp(fee)}.`,'good');
+  n.reg=c.reg; n.depts=[]; n.divs=[]; n.pay={...(c.pay||PAY_DEF())}; n.mfees={}; n.outs={}; n.cash=cashIn+pcap-hf; n.rups={...c.rups};
+  n.board=picks.map(p=>{ const {fee:_f,key:_k,...x}=p; return {...x,id:nid('B')}; }); n.hired=picks.filter(p=>p.key).map(p=>p.key);
+  { const d0=n.board.find(x=>x.role==='dir'); if(d0) d0.fn='ceo'; }
+  S.C.push(n); S.sel.co=n.id; updateLevel(n,true);
+  logm(`${coName(c)} spun off ${b.n} in ${REG[u.reg].n} as ${coName(n)} (pemisahan, UU 40/2007 Art. 135). Paid-up capital ${rp(total)}: the unit at book value ${rp(u.book)}${cashIn?` plus ${rp(cashIn)} working capital`:''}, and ${rp(pcap)} from ${partner==='F'?'your family':partner==='P'?'you personally':coName(acct(partner))}. ${coName(c)} holds ${pc(1-pct,0)}, ${partner==='F'?'your family':partner==='P'?'you personally':coName(acct(partner))} ${pc(pct,0)}. ${n.board.map(x=>`${titleOf(n,x)}: ${x.who==='P'?'you':x.name}`).join(' · ')}. Fees ${rp(fee)}${hf?`, headhunter fees ${rp(hf)}`:''}.`,'good');
   return n;
 }
 function inbrengTargets(c){ return S.C.filter(t=>t!==c&&(c.form==='PT'?(t.form==='PT'&&(t.own[c.id]||0)>0):((t.form==='PT'||t.form==='PTP')&&(t.own.P||0)>0))); }
@@ -1893,19 +2425,39 @@ function spinModal(cid,uid){
   if(err(spinCheck(c,u))) return;
   const b=BIZ[u.t], t=unitT12(u), fee=spinFee(S.h), law=lawPT(S.h);
   const town=REG[u.reg].n.replace(/^(Kab\.|Kota) /,'').split(' ')[0];
-  openModal(`Spin off · ${b.n}`,`
-    <p class="note">${b.n} in ${esc(REG[u.reg].n)} made ${rp(t.net)} over the last ${t.n} months. Spinning it off creates a new PT that ${esc(coName(c))} owns 99% of, with your family holding the other 1% as the required second shareholder. The unit moves at book value with its staff and stock.</p>
-    <label class="f">Name of the new PT<input type="text" id="sp-name" maxlength="40" value="${esc(town+' '+b.n.split(' ').pop())}"></label>
-    <label class="f">Working capital from ${esc(coName(c))}<input type="number" id="sp-cash" min="0" step="1000000" value="${Math.round(u.cap*0.1/1e6)*1e6}"></label>
-    <div class="rows">
-      <div class="row"><span class="k">Unit at book value</span><span class="v">${rp(u.book)}</span></div>
-      <div class="row"><span class="k">Notary, ministry and announcement fees</span><span class="v">${rp(fee)}</span></div>
-      <div class="row"><span class="k">Minimum paid-up capital</span><span class="v">${law.minPaid?rp(law.minPaid,true):'Set by founders'}</span></div>
-      <div class="row"><span class="k">${esc(coName(c))} account</span><span class="v">${rp(c.cash)}</span></div>
-    </div>
-    <div class="btns"><button class="btn pri" id="sp-go">Spin off</button><button class="btn" data-act="close">Cancel</button></div>`,el=>{
-    el.querySelector('#sp-go').onclick=()=>{ const r=spinOff(c,u,el.querySelector('#sp-name').value,+el.querySelector('#sp-cash').value); if(err(r)) return; closeModal(); S.tab='biz'; render(); };
-  });
+  const st={name:town+' '+b.n.split(' ').pop(),cash:Math.round(u.cap*0.1/1e6)*1e6,partner:'F',pct:1,dir:'',kom:''};
+  const partners=['F','P',...S.C.filter(x=>x.form==='PT'&&x!==c).map(x=>x.id)];
+  const draw=el=>{
+    const body=el.querySelector('#sp-body'), pct=clamp(st.pct/100,0.01,0.49), total=(u.book+st.cash)/(1-pct), pcap=total*pct;
+    const tmp={id:'C'+S.nid,reg:c.reg,hired:[],level:sizeOf(total,0,S.h)}, dc=candidates(tmp,'dir'), kc=candidates(tmp,'kom');
+    const candOpt=(x,sel)=>`<option value="${x.key}" ${sel===x.key?'selected':''}>${x.src==='pro'?'Professional':'Family'} · ${esc(x.name)}, ${esc(x.bg.toLowerCase())} · skill ${x.skill} · ${refBand(x.integ)[0].toLowerCase()} · ${rp(x.sal)}/mo${x.fee?' + fee '+rp(x.fee):''}</option>`;
+    const pName=p=>p==='F'?'Your family':p==='P'?'You personally':coName(acct(p));
+    body.innerHTML=`<p class="note">${b.n} in ${esc(REG[u.reg].n)} made ${rp(t.net)} over the last ${t.n} months. Spinning it off creates a new PT controlled by ${esc(coName(c))}. The unit moves at book value with its staff and stock. A PT needs a second shareholder, who pays cash in for their stake.</p>
+      <label class="f">Name of the new PT<input type="text" id="sp-name" maxlength="40" value="${esc(st.name)}"></label>
+      <label class="f">Working capital from ${esc(coName(c))}<input type="number" id="sp-cash" min="0" step="1000000" value="${st.cash}"></label>
+      <div class="eyebrow">Shareholders</div>
+      <div class="fields">
+        <label class="f">Second shareholder<select id="sp-partner">${partners.map(p=>`<option value="${p}" ${p===st.partner?'selected':''}>${esc(pName(p))}${p==='F'?'':' · account '+rp(acct(p).cash)}</option>`).join('')}</select></label>
+        <label class="f">Their share (%)<input type="number" id="sp-pct" min="1" max="49" value="${st.pct}"></label>
+      </div>
+      <div class="eyebrow">Direksi & dewan komisaris</div>
+      <label class="f">Direktur Utama<select id="sp-dir"><option value="">Choose…</option><option value="P" ${st.dir==='P'?'selected':''}>Me, ${esc(S.name)}</option>${dc.map(x=>candOpt(x,st.dir)).join('')}</select></label>
+      <label class="f">Komisaris<select id="sp-kom"><option value="">Choose…</option><option value="P" ${st.kom==='P'?'selected':''}>Me, ${esc(S.name)}</option><option value="MOM" ${st.kom==='MOM'?'selected':''}>${esc(momName(tmp.id))}, your mother · skill 40 · unpaid</option>${kc.map(x=>candOpt(x,st.kom)).join('')}</select></label>
+      <p class="note">One person cannot hold both seats. Professionals charge a headhunter fee of two months' pay, paid from the new PT's cash. With ${rp(total)} of capital it starts as a Usaha ${LEVELS[tmp.level].n}, which draws professionals up to about skill ${LEVELS[tmp.level].tal.cap}.</p>
+      <div class="rows">
+        <div class="row"><span class="k">Unit at book value</span><span class="v">${rp(u.book)}</span></div>
+        <div class="row"><span class="k">Paid-up capital</span><span class="v">${rp(total)}</span></div>
+        <div class="row"><span class="k">${esc(coName(c))} / ${esc(pName(st.partner))}</span><span class="v">${pc(1-pct,0)} / ${pc(pct,0)} · they pay ${rp(pcap)}</span></div>
+        <div class="row"><span class="k">Notary, ministry and announcement fees</span><span class="v">${rp(fee)}</span></div>
+        <div class="row"><span class="k">Minimum paid-up capital</span><span class="v">${law.minPaid?rp(law.minPaid,true):'Set by founders'}</span></div>
+        <div class="row"><span class="k">${esc(coName(c))} account</span><span class="v">${rp(c.cash)}</span></div>
+      </div>
+      <div class="btns"><button class="btn pri" id="sp-go">Spin off</button><button class="btn" data-act="close">Cancel</button></div>`;
+    const keep=()=>{ st.name=body.querySelector('#sp-name').value; st.cash=+body.querySelector('#sp-cash').value||0; st.partner=body.querySelector('#sp-partner').value; st.pct=+body.querySelector('#sp-pct').value||1; st.dir=body.querySelector('#sp-dir').value; st.kom=body.querySelector('#sp-kom').value; };
+    ['#sp-cash','#sp-partner','#sp-pct'].forEach(q=>body.querySelector(q).addEventListener('change',()=>{ keep(); draw(el); }));
+    body.querySelector('#sp-go').onclick=()=>{ keep(); const r=spinOff(c,u,st); if(err(r)) return; closeModal(); S.tab='biz'; render(); };
+  };
+  openModal(`Spin off · ${b.n}`,'<div id="sp-body" style="display:flex;flex-direction:column;gap:12px"></div>',draw);
 }
 function inbrengModal(cid,uid){
   const c=acct(cid), u=c.units.find(x=>x.id===uid); if(!u) return;
@@ -2059,7 +2611,7 @@ function placeModal(title,start,info,go,label){
         <label class="f">Province<select id="mv-prov">${PROVS.map(p=>`<option ${p===st.p?'selected':''}>${esc(p)}</option>`).join('')}</select></label>
         <label class="f">Regency<select id="mv-reg">${regsIn(st.p).map(k=>`<option value="${k}" ${k===st.reg?'selected':''}>${esc(REG[k].n)}${k===start?' (current)':''}</option>`).join('')}</select></label>
       </div>
-      <p class="note">${esc(TYPE_N[r.type])} · ${NF.format(km(start,st.reg))} km from ${esc(REG[start].n)} · UMR ${rp(umr(st.reg,S.h),true)} · specialties: ${r.spec.map(k=>`<span class="chip good">${BIZ[k].n}</span>`).join(' ')}</p>
+      <p class="note">${esc(TYPE_N[r.type])} · ${NF.format(km(start,st.reg))} km from ${esc(REG[start].n)} · UMR ${rp(umr(st.reg,S.h),true)} · specialties: ${specChips(r)}</p>
       ${info(st.reg)}
       <div class="btns"><button class="btn pri" id="mv-go">${label} ${esc(r.n)}</button><button class="btn" data-act="close">Cancel</button></div>`;
     body.querySelector('#mv-prov').onchange=e=>{ st.p=e.target.value; st.reg=regsIn(st.p)[0]; draw(el); };
@@ -2122,7 +2674,7 @@ function closePersonalMonth(k){
   (P.hist||(P.hist=[])).push({k,src,exp:P.expM||{},names,bs:balanceP()}); if(P.hist.length>240) P.hist.shift();
   P.srcM={}; P.expM={};
 }
-const REP_LINES=[['Revenue','rev',1],['Cost of goods / inputs','cogs',-1],['Wages, board, BPJS, THR','wage',-1],['Rent & operating','opex',-1],['Monitoring & travel','mon',-1],['Depreciation','dep',-1],['Interest & fees','intx',-1],['Other income','other',1],['Management fees received','mfi',1],['Management fees paid','mfee',-1],['Income tax','tax',-1],['Fines','fine',-1],['Fraud losses','loss',-1]];
+const REP_LINES=[['Revenue','rev',1],['Cost of goods / inputs','cogs',-1],['Wages, board, BPJS, THR','wage',-1],['Rent & operating','opex',-1],['Monitoring & travel','mon',-1],['Depreciation','dep',-1],['Interest & fees','intx',-1],['Other income','other',1],['Management fees received','mfi',1],['Management fees paid','mfee',-1],['Outsourcing fees','outs',-1],['Income tax','tax',-1],['Fines','fine',-1],['Fraud & credit losses','loss',-1]];
 const QN=['Jan–Mar','Apr–Jun','Jul–Sep','Oct–Dec'];
 function periods(hist,per){
   const g=new Map();
@@ -2237,15 +2789,15 @@ function vRegions(){
     <div class="note">Grey dots are regencies, filled dots are business units, squares are head offices, diamonds are regional divisions, the ring is your home.</div></div></section>
   <section class="panel"><div class="panel-h"><h3>Regency directory</h3>
     <div class="fields" style="flex:1;max-width:460px"><label class="f">Province<select id="rf-p" data-chg="regp"><option value="">All provinces</option>${PROVS.map(p=>`<option ${f.p===p?'selected':''}>${esc(p)}</option>`).join('')}</select></label>
-    <label class="f">Specialty<select id="rf-b" data-chg="regb"><option value="">Any</option>${Object.entries(BIZ).filter(([k])=>k!=='warung').map(([k,b])=>`<option value="${k}" ${f.b===k?'selected':''}>${b.n}</option>`).join('')}</select></label></div></div>
+    <label class="f">Specialty<select id="rf-b" data-chg="regb"><option value="">Any</option>${Object.entries(BIZ).filter(([k])=>Object.values(REG).some(r=>r.spec.includes(k)||r.boost.includes(k))).map(([k,b])=>`<option value="${k}" ${f.b===k?'selected':''}>${b.n}</option>`).join('')}</select></label></div></div>
     <div class="panel-b">${LH(()=>regTable())}</div></section>`;
 }
 function regTable(){
   const f=S.sel.regf, used={}; for(const c of S.C) for(const u of c.units) used[u.reg]=(used[u.reg]||0)+1;
-  const ids=Object.keys(REG).filter(k=>(!f.p||REG[k].prov===f.p)&&(!f.b||REG[k].spec.includes(f.b)));
+  const ids=Object.keys(REG).filter(k=>(!f.p||REG[k].prov===f.p)&&(!f.b||REG[k].spec.includes(f.b)||REG[k].boost.includes(f.b)));
   if(!ids.length) return '<p class="note">No regency matches both filters.</p>';
-  return `<div class="tbl-wrap"><table><thead><tr><th>Regency</th><th>Specialties (+25%)</th><th class="n">UMR</th><th class="n">From home</th><th class="n">Monitoring from home</th><th class="n">Your units</th></tr></thead><tbody>${ids.map(k=>{const r=REG[k], d=km(S.home,k);
-    return `<tr><td><b>${esc(r.n)}</b>${k===S.home?' <span class="chip acc">home</span>':''}<div class="muted" style="font-size:.75rem">${esc(provOf(k))} · ${TYPE_N[r.type]}</div></td><td>${r.spec.map(s=>`<span class="chip">${BIZ[s].n}</span>`).join(' ')}</td><td class="n">${rp(umr(k,S.h))}</td><td class="n">${NF.format(d)} km</td><td class="n">${rp(120e3*cpi(S.h)*(1+d/150))}</td><td class="n">${used[k]||'—'}</td></tr>`;}).join('')}</tbody></table></div>
+  return `<div class="tbl-wrap"><table><thead><tr><th>Regency</th><th>Specialties (+25%) · strong markets (↑)</th><th class="n">UMR</th><th class="n">From home</th><th class="n">Monitoring from home</th><th class="n">Your units</th></tr></thead><tbody>${ids.map(k=>{const r=REG[k], d=km(S.home,k);
+    return `<tr><td><b>${esc(r.n)}</b>${k===S.home?' <span class="chip acc">home</span>':''}<div class="muted" style="font-size:.75rem">${esc(provOf(k))} · ${TYPE_N[r.type]}</div></td><td>${specChips(r)}</td><td class="n">${rp(umr(k,S.h))}</td><td class="n">${NF.format(d)} km</td><td class="n">${rp(120e3*cpi(S.h)*(1+d/150))}</td><td class="n">${used[k]||'—'}</td></tr>`;}).join('')}</tbody></table></div>
     <p class="note">Monitoring is shown before any discount from a strong board of directors. Remote regencies cost more to set up and rent in.</p>`;
 }
 function drawMap(cv){
@@ -2442,26 +2994,26 @@ const JOBS={
   ga:{n:'General affairs & office',fn:'ops',lv:2,w:0.4,miss:'Higher running costs'},
   cs:{n:'Corporate secretary',fn:'corp',lv:3,w:0.3,miss:'Weaker governance'},
   risk:{n:'Risk management',fn:'fin',lv:3,w:0.3,miss:'Weaker fraud and credit control'},
-  csr:{n:'CSR programmes (UU 40/2007 Art. 74)',fn:'corp',lv:3,w:0.3,miss:'Fines if you run plantations, fisheries or mining services'},
+  csr:{n:'CSR programmes (UU 40/2007 Art. 74)',fn:'corp',lv:3,w:0.3,miss:'Fines if you run plantations, fisheries, mines or oil and gas'},
   strategy:{n:'Corporate planning',fn:'corp',lv:3,w:0.3,miss:'Lower management score'},
 };
 const JOB_FN={fin:'Finance',ops:'Operations',mkt:'Marketing',hr:'People',corp:'Corporate & legal'};
 const DEPT_MAX=[1,3,6,12], DEPT_SCALE=[1,1.3,1.8,2.5];
 const HEADT=[{k:'staff',t:'Koordinator'},{k:'mgr',t:'Manajer'},{k:'mgr',t:'Manajer'},{k:'vp',t:'VP'}];
-const RESOURCE=['sawit','karet','kopi','kakao','tangkap','logistik','udang','rumput'];
+const RESOURCE=['sawit','karet','kopi','kakao','tangkap','logistik','udang','rumput','bandeng','cengkeh','tembakau','batubara','minyak','gas'];
 const jobsAt=lv=>Object.keys(JOBS).filter(j=>JOBS[j].lv<=lv);
 const deptOf=(c,j)=>(c.depts||[]).find(d=>d.jobs.includes(j));
 function deptNeed(c,d,jobs){ const lv=c.level||0, js=(jobs||d.jobs).filter(j=>JOBS[j].lv<=lv); return Math.max(1,Math.round(js.reduce((s,j)=>s+JOBS[j].w,0)*(1+c.units.length/6)*DEPT_SCALE[lv])); }
 function deptFocus(c,jobs){ const js=jobs.filter(j=>JOBS[j].lv<=(c.level||0)), n=Math.max(1,js.length), nf=new Set(js.map(j=>JOBS[j].fn)).size; return 1/(1+0.1*(n-1))*(1-0.08*Math.max(0,nf-1)); }
 function deptQ(c,d){ return clamp((d.head?d.head.skill:30)/100*deptFocus(c,d.jobs)*Math.min(1,d.staff/deptNeed(c,d)),0,1); }
-function jobQ(c,j){ if(JOBS[j].lv>(c.level||0)) return 0; const d=deptOf(c,j); return d?deptQ(c,d):0; }
+function jobQ(c,j){ if(JOBS[j].lv>(c.level||0)) return 0; if(c.outs&&c.outs[j]) return outQ(c,j); const d=deptOf(c,j); return d?deptQ(c,d):0; }
 function fnScore(c,fn){
   const js=jobsAt(c.level||0).filter(j=>JOBS[j].fn===fn), avg=js.length?js.reduce((s,j)=>s+jobQ(c,j),0)/js.length:0;
   let dir=0; if((c.level||0)>=1&&(c.form==='PT'||c.form==='PTP')) for(const b of c.board) if(b.role==='dir'&&b.fn===fn) dir=Math.max(dir,skillOf(b,c));
   return Math.round(avg>0?Math.min(100,avg*100*(0.8+0.4*dir/100)):dir*0.5);
 }
 function fnLead(c,fn){ const ds=[...new Set(jobsAt(c.level||0).filter(j=>JOBS[j].fn===fn).map(j=>deptOf(c,j)).filter(Boolean))]; const dir=c.board.find(b=>b.role==='dir'&&b.fn===fn&&(c.level||0)>=1);
-  const parts=[]; if(dir) parts.push(dir.who==='P'?'you as '+FN[fn].t:dir.name+', '+FN[fn].t); if(ds.length) parts.push(ds.map(d=>d.name).join(', ')); return parts.join(' with '); }
+  const parts=[]; if(dir) parts.push(dir.who==='P'?'you as '+FN[fn].t:dir.name+', '+FN[fn].t); if(ds.length) parts.push(ds.map(d=>d.name).join(', ')); const vs=jobsAt(c.level||0).filter(j=>JOBS[j].fn===fn&&(c.outs||{})[j]).map(j=>c.outs[j].name); if(vs.length) parts.push('outsourced to '+[...new Set(vs)].join(', ')); return parts.join(' with '); }
 const headTitle=(c,d)=>`${HEADT[c.level||0].t} ${d.name}`;
 const staffPay=c=>marketPay(c,'staff',LEVELS[c.level||0].tal.m-10);
 function autoHead(c,d,skillBonus){
@@ -2498,6 +3050,7 @@ function saveDept(c,name,jobs,d){
   const plan=deptPlan(c,jobs);
   if(!d&&c.cash<plan.setup) return `Not enough in ${coName(c)}'s account to staff the team: about ${rp(plan.setup)} in recruitment costs, ${rp(c.cash)} available.`;
   const moved=moveJobs(c,jobs,d);
+  for(const j of jobs) if(c.outs&&c.outs[j]){ moved.push(c.outs[j].name); delete c.outs[j]; }
   if(!d){ d={id:nid('T'),name,jobs:[...jobs],head:null,staff:0,staffSal:staffPay(c),since:S.h}; (c.depts||(c.depts=[])).push(d); const r=staffDept(c,d,true);
     logm(`${coName(c)} set up ${name} to handle ${jobs.map(j=>JOBS[j].n.toLowerCase()).join(', ')}. ${r.join(', ')}.${moved.length?` Taken over from ${moved.join(', ')}.`:''}`,'good'); }
   else { const old=d.name; d.name=name; d.jobs=[...jobs]; const r=staffDept(c,d,true); logm(`${coName(c)}: ${old!==name?old+' renamed '+name+'; ':''}now handles ${jobs.map(j=>JOBS[j].n.toLowerCase()).join(', ')}.${r.length?' '+r.join(', ')+'.':''}${moved.length?` Taken over from ${moved.join(', ')}.`:''}`); }
@@ -2514,7 +3067,7 @@ function deptModal(cid,did){
     if(!st.touched&&st.jobs.length){ const fns=[...new Set(st.jobs.map(j=>JOBS[j].fn))]; st.name=fns.map(f=>({fin:'Keuangan',ops:'Operasional',mkt:'Pemasaran',hr:'SDM',corp:'Legal & Korporat'}[f])).join(' & '); }
     body.innerHTML=`<p class="note">Tick the jobs this team handles. One team can take several, but each extra job, and above all jobs from different areas, spreads it thinner. The game recruits the team head and staff for you and resizes the team every month as the company grows.</p>
       <label class="f">Team name<input type="text" id="dp-name" maxlength="40" value="${esc(st.name)}" placeholder="Keuangan & Pajak"></label>
-      ${groups.map(([fn,js])=>`<div class="eyebrow">${JOB_FN[fn]}</div><div class="rows">${js.map(j=>{ const o=deptOf(c,j); return `<label class="row check" style="justify-content:space-between"><span><input type="checkbox" data-j="${j}" ${st.jobs.includes(j)?'checked':''}> ${esc(JOBS[j].n)}</span><span class="muted" style="font-size:.78rem">${o&&o!==d?'now with '+esc(o.name):o===d&&d?'this team':'unhandled'}</span></label>`; }).join('')}</div>`).join('')}
+      ${groups.map(([fn,js])=>`<div class="eyebrow">${JOB_FN[fn]}</div><div class="rows">${js.map(j=>{ const o=deptOf(c,j); return `<label class="row check" style="justify-content:space-between"><span><input type="checkbox" data-j="${j}" ${st.jobs.includes(j)?'checked':''}> ${esc(JOBS[j].n)}</span><span class="muted" style="font-size:.78rem">${(c.outs||{})[j]?'outsourced to '+esc(c.outs[j].name):o&&o!==d?'now with '+esc(o.name):o===d&&d?'this team':'unhandled'}</span></label>`; }).join('')}</div>`).join('')}
       <div class="rows">
         <div class="row"><span class="k">Team size</span><span class="v">${HEADT[lv].t} + ${plan.need} staff</span></div>
         <div class="row"><span class="k">Head's likely skill</span><span class="v">about ${plan.hs}</span></div>
@@ -2531,13 +3084,13 @@ function deptModal(cid,did){
   openModal(d?`Change ${d.name} · ${coName(c)}`:`Set up a team · ${coName(c)}`,'<div id="dp-body" style="display:flex;flex-direction:column;gap:12px"></div>',draw);
 }
 function deptSection(c){
-  const lv=c.level||0, avail=jobsAt(lv), open=avail.filter(j=>!deptOf(c,j)), later=Object.keys(JOBS).filter(j=>JOBS[j].lv===lv+1);
-  return `<section class="panel"><div class="panel-h"><div><h3>Things to do</h3><div class="note">Jobs a Usaha ${SZ(c).n} has to get done. Handle them by setting up teams; ${open.length?`<b class="warn">${open.length} unhandled</b>`:'everything is covered'}.</div></div><button class="btn sm pri" data-act="newdept" data-id="${c.id}">Set up a team (${(c.depts||[]).length}/${DEPT_MAX[lv]})</button></div>
+  const lv=c.level||0, avail=jobsAt(lv), open=avail.filter(j=>!deptOf(c,j)&&!(c.outs||{})[j]), later=Object.keys(JOBS).filter(j=>JOBS[j].lv===lv+1);
+  return `<section class="panel"><div class="panel-h"><div><h3>Things to do</h3><div class="note">Jobs a Usaha ${SZ(c).n} has to get done. Handle them by setting up teams or outsourcing to a vendor; ${open.length?`<b class="warn">${open.length} unhandled</b>`:'everything is covered'}.</div></div><button class="btn sm pri" data-act="newdept" data-id="${c.id}">Set up a team (${(c.depts||[]).length}/${DEPT_MAX[lv]})</button></div>
     <div class="panel-b">
       <div class="rows">${FNS.map(fn=>`<div class="row"><span class="k">${FN[fn].en} <span class="muted">· ${FN_EFF[fn]}</span><div class="muted" style="font-size:.75rem">${L(()=>{const l=fnLead(c,fn);return l?'Covered by '+l:'Nobody covers this yet';})}</div></span>${LH(()=>{const v=fnScore(c,fn);return `<span style="display:inline-flex;gap:8px;align-items:center"><span class="prog" style="width:100px"><i style="width:${v}%"></i></span>${v}</span>`;},'span','v')}</div>`).join('')}</div>
-      <div class="tbl-wrap"><table><thead><tr><th>Job</th><th>Area</th><th>If nobody does it</th><th>Handled by</th><th class="n">Quality</th></tr></thead><tbody>
-      ${avail.map(j=>{ const o=deptOf(c,j); return `<tr><td>${esc(JOBS[j].n)}</td><td class="muted">${JOB_FN[JOBS[j].fn]}</td><td class="muted" style="font-size:.82rem">${esc(JOBS[j].miss)}</td><td>${o?esc(o.name):'<span class="chip bad">Unhandled</span>'}</td><td class="n">${o?LH(()=>{const q=jobQ(c,j);return `<span style="display:inline-flex;gap:6px;align-items:center"><span class="prog" style="width:60px"><i style="width:${Math.round(q*100)}%"></i></span>${Math.round(q*100)}</span>`;},'span'):'—'}</td></tr>`; }).join('')}
-      ${later.map(j=>`<tr class="muted"><td>${esc(JOBS[j].n)}</td><td>${JOB_FN[JOBS[j].fn]}</td><td colspan="3" style="font-size:.82rem">Comes up at Usaha ${LEVELS[lv+1].n}</td></tr>`).join('')}
+      <div class="tbl-wrap"><table><thead><tr><th>Job</th><th>Area</th><th>If nobody does it</th><th>Handled by</th><th class="n">Quality</th><th></th></tr></thead><tbody>
+      ${avail.map(j=>{ const o=deptOf(c,j); return `<tr><td>${esc(JOBS[j].n)}</td><td class="muted">${JOB_FN[JOBS[j].fn]}</td><td class="muted" style="font-size:.82rem">${esc(JOBS[j].miss)}</td><td>${(c.outs||{})[j]?`<span class="chip acc">Outsourced</span> ${esc(c.outs[j].name)}<div class="muted" style="font-size:.72rem">${L(()=>rp(c.outs[j]?(c.outs[j].last||outFee(c,j,c.outs[j])):0)+' / month')}</div>`:o?esc(o.name):'<span class="chip bad">Unhandled</span>'}</td><td class="n">${o||(c.outs||{})[j]?LH(()=>{const q=jobQ(c,j);return `<span style="display:inline-flex;gap:6px;align-items:center"><span class="prog" style="width:60px"><i style="width:${Math.round(q*100)}%"></i></span>${Math.round(q*100)}</span>`;},'span'):'—'}</td><td>${OUTSRC[j]?((c.outs||{})[j]?`<button class="btn sm" data-act="endout" data-id="${c.id}" data-v="${j}">End contract</button>`:`<button class="btn sm" data-act="outsrc" data-id="${c.id}" data-v="${j}">Outsource</button>`):''}</td></tr>`; }).join('')}
+      ${later.map(j=>`<tr class="muted"><td>${esc(JOBS[j].n)}</td><td>${JOB_FN[JOBS[j].fn]}</td><td colspan="4" style="font-size:.82rem">Comes up at Usaha ${LEVELS[lv+1].n}</td></tr>`).join('')}
       </tbody></table></div>
     </div></section>
   <section class="panel"><div class="panel-h"><div><h3>Teams</h3><div class="note">Team heads carry the title ${HEADT[lv].t} at this size${lv<3?' and become VP at Usaha Besar':''}. Staff are hired and let go automatically as the workload changes.</div></div></div>
@@ -2546,6 +3099,68 @@ function deptSection(c){
         <div class="meta" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">${d.jobs.map(j=>`<span class="chip ${JOBS[j].lv>lv?'':'good'}">${esc(JOBS[j].n)}${JOBS[j].lv>lv?' · not needed yet':''}</span>`).join('')||'<span class="chip bad">No jobs</span>'}</div>
         <div class="meta">${L(()=>`Quality ${Math.round(deptQ(c,d)*100)} · focus ${pc(deptFocus(c,d.jobs),0)}`)}</div></div>
         <div style="text-align:right"><div class="num">${rp(cost)} / mo</div><div class="btns" style="justify-content:flex-end;margin-top:6px"><button class="btn sm" data-act="editdept" data-id="${c.id}" data-v="${d.id}">Change jobs</button><button class="btn sm bad" data-act="closedept" data-id="${c.id}" data-v="${d.id}">Close</button></div></div></div>`; }).join('')+`<div class="tbl-wrap"><table><thead><tr><th>Role</th><th>Name</th><th>From</th><th class="n">Skill</th><th>References</th><th class="n">Pay / month</th><th></th></tr></thead><tbody>${c.depts.filter(d=>d.head).map(d=>personRow(c,{p:d.head,where:'dept',dept:d})).join('')}</tbody></table></div><p class="note">You can adjust a team head's pay or replace them; a dismissed head is replaced by a new hire automatically.</p>`):'<p class="note">No teams yet. Every job above is unhandled.</p>'}</div></section>`;
+}
+
+/* ---------- Outsourcing (alih daya) */
+// job: [group business type that can deliver it (or null), what an outside vendor is called]
+const OUTSRC={
+  acct:['alihdaya','accounting services firm'], tax:[null,'tax consultant'], payroll:['alihdaya','payroll bureau'], recruit:['alihdaya','recruitment agency'],
+  logi:['alihdaya','3PL logistics provider'], it:['konsultan_ti','IT vendor'], ga:['alihdaya','facility management firm'], legal:[null,'law firm'], audit:[null,'public accounting firm (KAP)'],
+};
+const VCAP=[2,6,20];
+const VT=[{k:'Budget',m:0.8,q:[0.42,0.55]},{k:'Standard',m:1.1,q:[0.6,0.72]},{k:'Premium',m:1.6,q:[0.78,0.9]}];
+const VNAME=['Mitra','Prima','Solusi','Karya','Sinergi','Nusantara','Jasa','Andalan','Cipta','Global','Bina','Sentosa','Utama','Integra','Graha'];
+function outBase(c,j){ const lv=c.level||0; return Math.max(1,Math.round(JOBS[j].w*(1+c.units.length/6)*DEPT_SCALE[lv]))*staffPay(c)*(1+bpjsRate(S.h))*1.35; }
+function outFee(c,j,o){ return Math.round(outBase(c,j)*(o?o.m:1)/1000)*1000; }
+function hashN(str){ let h=2166136261; for(const ch of str){ h^=ch.charCodeAt(0); h=Math.imul(h,16777619); } return (h>>>0)/4294967296; }
+function vendorOffers(c,j){
+  const mo=Math.floor(S.h/(24*30)), lv=c.level||0;
+  return VT.map((t,i)=>{ const r=hashN(c.id+j+mo+i), r2=hashN(j+i+mo+c.id+'n'), b0=Math.floor(hashN(c.id+j+mo)*VNAME.length), n1=VNAME[(b0+i*5)%VNAME.length], n2=VNAME[(b0+i*5+2+Math.floor(r2*3))%VNAME.length];
+    const q=clamp(t.q[0]+(t.q[1]-t.q[0])*r+0.02*lv,0,0.95);
+    const sfx={acct:'Akuntansi',tax:'Konsultan Pajak',payroll:'Payroll Services',recruit:'Rekrutmen',logi:'Logistik',it:'Teknologi',ga:'Facility Services'}[j];
+    const k0=(b0+i*7)%LAST.length, name=sfx?`PT ${n1} ${n2} ${sfx}`:`${j==='audit'?'KAP ':''}${LAST[k0]}${j==='legal'?', '+LAST[(k0+3)%LAST.length]:''} & Rekan`;
+    return {v:'X',tier:t.k,name,q,m:t.m}; });
+}
+function vendorKind(j){ return OUTSRC[j]&&OUTSRC[j][0]; }
+function vendorCap(v,kind){ return v.units.filter(u=>u.t===kind).reduce((s,u)=>s+VCAP[u.lv],0); }
+function vendorUsed(v,kind){ let n=0; for(const c of S.C) for(const j in c.outs||{}){ const o=c.outs[j]; if(o.v===v.id&&vendorKind(j)===kind) n++; } return n; }
+function ownVendorQ(v,kind){ const us=v.units.filter(u=>u.t===kind); if(!us.length) return 0; const lv=Math.max(...us.map(u=>u.lv)); return clamp((0.48+0.12*lv)*(0.8+0.35*mgmt(v)/100)*Math.min(1.05,Math.max(...us.map(u=>staffF(u)))),0,0.95); }
+function groupVendors(c,j){ const kind=vendorKind(j); if(!kind) return []; return S.C.filter(v=>v!==c&&v.units.some(u=>u.t===kind)).map(v=>({v:v.id,name:coName(v),q:ownVendorQ(v,kind),m:1,cap:vendorCap(v,kind),used:vendorUsed(v,kind)})); }
+function outQ(c,j){ const o=(c.outs||{})[j]; if(!o) return 0; if(o.v==='X') return o.q; const v=acct(o.v); return v?ownVendorQ(v,vendorKind(j)):0; }
+function outsource(c,j,o){
+  if(!OUTSRC[j]) return `${JOBS[j].n} cannot be outsourced. Set up a team for it.`;
+  if(JOBS[j].lv>(c.level||0)) return `${coName(c)} does not need ${JOBS[j].n.toLowerCase()} yet.`;
+  if(o.v!=='X'){ const v=acct(o.v); if(!v) return 'That company no longer exists.'; const kind=vendorKind(j);
+    if(vendorUsed(v,kind)>=vendorCap(v,kind)) return `${coName(v)} is already serving as many clients as its ${BIZ[kind].n} units can handle (${vendorCap(v,kind)}). Expand a unit or open another.`; }
+  const fee=outFee(c,j,o); if(c.cash<fee) return `${coName(c)} needs at least one month's fee, ${rp(fee)}, in its account to sign the contract.`;
+  const moved=moveJobs(c,[j],null);
+  (c.outs||(c.outs={}))[j]={v:o.v,name:o.name,q:o.q,m:o.m,since:S.h,last:0};
+  logm(`${coName(c)} outsourced ${JOBS[j].n.toLowerCase()} to ${o.name} for about ${rp(fee)} a month${o.v!=='X'?', a group company: the fee stays inside the group':''}.${moved.length?` ${moved.join(', ')} no longer handle${moved.length>1?'':'s'} it.`:''}`,'good');
+  S.dirty=true; return null;
+}
+function endOut(c,j){ const o=(c.outs||{})[j]; if(!o) return; delete c.outs[j]; logm(`${coName(c)} ended its contract with ${o.name} for ${JOBS[j].n.toLowerCase()}. The job is unhandled until a team or another vendor takes it.`); S.dirty=true; }
+function billOuts(){
+  for(const c of S.C){ for(const j of Object.keys(c.outs||{})){ const o=c.outs[j];
+    if(JOBS[j].lv>(c.level||0)){ delete c.outs[j]; continue; }
+    if(o.v!=='X'){ const v=acct(o.v), kind=vendorKind(j); if(!v||!v.units.some(u=>u.t===kind)){ delete c.outs[j]; logm(`${coName(c)}: the outsourcing contract for ${JOBS[j].n.toLowerCase()} lapsed because ${o.name} no longer runs a ${BIZ[kind].n} unit.`,'bad'); continue; } }
+    const fee=outFee(c,j,o); o.last=fee; c.cash-=fee; book(c,'outs',fee);
+    if(o.v!=='X'){ const v=acct(o.v), kind=vendorKind(j), u=v.units.filter(x=>x.t===kind).sort((a,b)=>b.lv-a.lv)[0], cost=Math.round(fee*(1-BIZ[kind].margin));
+      v.cash+=fee-cost; book(v,'rev',fee); book(v,'cogs',cost); u.mrev=(u.mrev||0)+fee; const m=um(u); m.rev+=fee; m.cost+=cost; }
+  } }
+}
+function outModal(cid,j){
+  const c=acct(cid), ext=vendorOffers(c,j), grp=groupVendors(c,j), kind=vendorKind(j), d=deptOf(c,j);
+  const row=(o,i,src)=>{ const fee=outFee(c,j,o), full=o.cap!=null&&o.used>=o.cap;
+    return `<div class="row" style="align-items:center"><span class="k"><b>${esc(o.name)}</b><div class="muted" style="font-size:.75rem">${src==='g'?`Group company · serving ${o.used} of ${o.cap} client jobs · fee becomes its revenue`:`${o.tier} ${OUTSRC[j][1]}`}</div></span>
+      <span class="v" style="display:inline-flex;gap:10px;align-items:center"><span class="prog" style="width:70px"><i style="width:${Math.round(o.q*100)}%"></i></span>${Math.round(o.q*100)} · ${rp(fee)}/mo <button class="btn sm ${full?'':'pri'}" data-pick="${src}${i}" ${full?'disabled':''}>${full?'Full':'Hire'}</button></span></div>`; };
+  openModal(`Outsource ${JOBS[j].n.toLowerCase()} · ${coName(c)}`,`<div id="os-body" style="display:flex;flex-direction:column;gap:12px">
+    <p class="note">An outside vendor does the job for a monthly fee that follows the company's size. There is no team head or staff to recruit, and you can end the contract at any time. Quality is what the vendor delivers; a team of your own built around one job is usually comparable at Standard quality.${d?` <b>${esc(d.name)}</b> handles this job today and will hand it over.`:''}</p>
+    <div class="eyebrow">Outside vendors this month</div><div class="rows">${ext.map((o,i)=>row(o,i,'x')).join('')}</div>
+    ${kind?`<div class="eyebrow">Your own group</div>${grp.length?`<div class="rows">${grp.map((o,i)=>row(o,i,'g')).join('')}</div>`:`<p class="note">No company in your group runs a ${BIZ[kind].n} unit yet. Open one in a subsidiary (it is a medium business, so the subsidiary must be at least a Usaha Kecil) and it can take this job, earning the fee inside the group.</p>`}`:`<p class="note">Only licensed outside firms can do this job, so group companies cannot take it.</p>`}
+    <div class="rows"><div class="row"><span class="k">Company account</span><span class="v">${rp(c.cash)}</span></div></div>
+    <div class="btns"><button class="btn" data-act="close">Cancel</button></div></div>`,el=>{
+      el.querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>{ const k=b.dataset.pick, o=(k[0]==='x'?ext:grp)[+k.slice(1)]; if(err(outsource(c,j,o))) return; closeModal(); render(); });
+    });
 }
 
 /* ---------- Organisation panel */
