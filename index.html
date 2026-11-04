@@ -1908,6 +1908,7 @@ function coDetail(c){
         <button class="btn sm" data-act="report" data-id="${c.id}">Financial report</button>
         <button class="btn sm" data-act="tradefor" data-id="${c.id}">Trade shares as ${esc(coName(c))}</button>
         ${isPT?`<button class="btn sm" data-act="found" data-parent="${c.id}">Found a subsidiary</button>`:''}
+        ${c.form==='UD'||c.form==='CV'?`<button class="btn sm pri" data-act="convert" data-id="${c.id}">Convert to PT</button>`:''}
         <button class="btn sm" data-act="rename" data-id="${c.id}">Rename</button>
         <button class="btn sm" data-act="relocate" data-id="${c.id}">Move office</button>
         <button class="btn sm" data-act="merge" data-id="${c.id}">Merge another company in</button>
@@ -2319,6 +2320,8 @@ const ACT={
   endout:d=>{ const c=acct(d.id), o=(c.outs||{})[d.v]; if(!o) return; askConfirm(`End the contract with ${esc(o.name)} for ${esc(JOBS[d.v].n.toLowerCase())}? The job is unhandled until a team or another vendor takes it.`,'End contract',()=>{ endOut(c,d.v); render(); }); },
   editdept:d=>deptModal(d.id,d.v),
   closedept:d=>{ const c=acct(d.id), t=(c.depts||[]).find(x=>x.id===d.v); if(!t) return; askConfirm(`Close ${esc(t.name)}? Its ${t.staff+(t.head?1:0)} people are let go with severance and its jobs become unhandled.`,'Close team',()=>{ closeDept(c,t); render(); }); },
+  convert:d=>convertModal(d.id),
+  renamediv:d=>renameDivModal(d.id,d.v),
   closediv:d=>{ const c=acct(d.id), v=(c.divs||[]).find(x=>x.id===d.v); if(!v) return; const sev=v.head&&v.head.src==='pro'?2*v.head.sal:0;
     askConfirm(`Close ${esc(v.name)}? Its units go back to being monitored from head office or the nearest other division.${sev?` The division head's severance is ${rp(sev)}.`:''}`,'Close division',()=>{ if(sev){ c.cash-=sev; book(c,'wage',sev); } c.divs.splice(c.divs.indexOf(v),1); logm(`${coName(c)} closed ${v.name}.`); render(); }); },
   mfee:d=>{ const p=acct(d.id), s=acct(d.s); if(err(setFee(p,s,+document.getElementById('mf-p-'+d.s).value,+document.getElementById('mf-f-'+d.s).value))) return; render(); },
@@ -2470,20 +2473,117 @@ function spinOff(c,u,o){
 }
 function inbrengTargets(c){ return S.C.filter(t=>t!==c&&(c.form==='PT'?(t.form==='PT'&&(t.own[c.id]||0)>0):((t.form==='PT'||t.form==='PTP')&&(t.own.P||0)>0))); }
 function inbreng(c,u,tid){
-  const t=acct(tid), b=BIZ[u.t], fee=kjppFee(S.h);
+  const t=acct(tid), b=BIZ[u.t], fee=kjppNeed(u.book)?kjppFee(S.h):0;
   if(!t) return 'Choose the company that receives the unit.';
   if(t.form!=='PT'&&t.form!=='PTP') return `${coName(t)} is a ${t.form}. Inbreng is a contribution of assets in exchange for shares, so the receiver must be a PT (UU 40/2007 Art. 34).`;
   if(c.form==='PT'&&t.form==='PTP') return 'A PT Perorangan can only be owned by an individual, so a company cannot take shares in it.';
   if(c.form==='PT'&&!(t.own[c.id]>0)) return `${coName(t)} is not a subsidiary of ${coName(c)}. A PT can only move a unit by inbreng into a company it holds shares in.`;
   if(c.form!=='PT'&&!(t.own.P>0)) return `You hold no shares in ${coName(t)}.`;
-  if(c.cash<fee) return `Not enough in ${coName(c)}'s account for the independent appraiser (KJPP) who must value the unit first: ${rp(fee)} needed, ${rp(c.cash)} available.`;
+  if(fee&&c.cash<fee) return `Not enough in ${coName(c)}'s account for the independent appraiser (KJPP) who must value the unit first: ${rp(fee)} needed, ${rp(c.cash)} available.`;
   const holder=c.form==='PT'?c.id:'P', bv=Math.max(100,equity(t)/t.shares), val=u.book, ns=Math.max(1,Math.round(val/bv));
-  c.cash-=fee; book(c,'opex',fee); c.units.splice(c.units.indexOf(u),1);
+  if(fee){ c.cash-=fee; book(c,'opex',fee); } c.units.splice(c.units.indexOf(u),1);
   if(c.form!=='PT') c.paidIn=Math.max(0,c.paidIn-val);
   t.units.push(u); t.shares+=ns; t.own[holder]=(t.own[holder]||0)+ns; t.paidIn+=val;
-  logm(`Inbreng: ${coName(c)} transferred ${b.n} in ${REG[u.reg].n} to ${coName(t)} at its appraised book value of ${rp(val)}, for ${NF.format(ns)} new shares${holder==='P'?' issued to you':''}. ${acctName(holder)} now holds ${pc(ownPct(t,holder),1)} of ${coName(t)}. Appraisal fee ${rp(fee)}.`,'good');
+  logm(`Inbreng: ${coName(c)} transferred ${b.n} in ${REG[u.reg].n} to ${coName(t)} at ${fee?'its appraised':'its'} book value of ${rp(val)}, for ${NF.format(ns)} new shares${holder==='P'?' issued to you':''}. ${acctName(holder)} now holds ${pc(ownPct(t,holder),1)} of ${coName(t)}.${fee?` Appraisal fee ${rp(fee)}.`:' Small enough to value from the books: no appraisal fee.'}`,'good');
   return null;
 }
+/* ---------- Converting a UD or CV into a PT */
+// Simplification: small contributions are valued from the books by the notary; a KJPP appraisal is only needed above this.
+const kjppLimit=h=>1e9*cpi(h);
+const kjppNeed=(val,h)=>val>kjppLimit(h??S.h);
+function convInfo(c,o){
+  const h=S.h, law=lawPT(h), ptp=o.form==='PTP', mode=o.mode||'new';
+  const nonCash=unitBook(c)+holdMV(c)+bondMV(c), eq=equity(c), appr=kjppNeed(nonCash,h)?kjppFee(h):0;
+  if(mode==='into'){ const t=acct(o.target); return {mode,t,eq,nonCash,appr,fee:formFee('PT',h)+appr,law}; }
+  const pct=ptp?0:c.form==='CV'?(c.own.F||0)/c.shares:clamp((+o.pct||1)/100,0.01,0.49), partner=ptp?null:c.form==='CV'?'F':(o.partner||'F');
+  const total=c.form==='CV'?Math.max(0,eq):Math.max(0,eq)/(1-pct), pcap=c.form==='CV'?0:total*pct;
+  return {mode,eq,nonCash,appr,fee:formFee(o.form,h)+appr,law,pct,partner,total,pcap,ptp};
+}
+function convertCheck(c,o){
+  if(c.form!=='UD'&&c.form!=='CV') return `${coName(c)} is already a PT.`;
+  const I=convInfo(c,o), h=S.h;
+  if(I.eq<=0) return `${coName(c)} has no positive net assets to put into a PT (equity ${rp(I.eq)}). Inject capital or pay down loans first.`;
+  if(I.mode==='into'){
+    const t=I.t; if(!t) return 'Choose the PT that takes over the business.';
+    if(t.form!=='PT'&&t.form!=='PTP') return `${coName(t)} is a ${t.form}; only a PT can take a business in exchange for shares.`;
+    if(!(t.own.P>0)) return `You hold no shares in ${coName(t)}, so it cannot issue you shares for the business.`;
+    if(t.form==='PTP'&&c.form==='CV') return 'A PT Perorangan has one owner only, so it cannot issue shares to your CV partner. Choose a regular PT.';
+    if(S.C.some(s=>s.own[c.id]>0)) return `${coName(c)} holds shares in other companies. Sell or move them first.`;
+    if(c.cash<I.fee) return `Not enough in ${coName(c)}'s account for the notary${I.appr?' and the KJPP appraisal':''}: ${rp(I.fee)} needed, ${rp(c.cash)} available.`;
+    return null;
+  }
+  if(o.form==='PTP'){ if(h<H_PTP) return 'PT Perorangan only exists from February 2021 (PP 8/2021).'; if(c.form==='CV') return 'A CV has two partners; a PT Perorangan has one. Convert to a regular PT.'; if((c.level||0)>1) return `A PT Perorangan is only for micro and small businesses. ${coName(c)} is a Usaha ${SZ(c).n}.`; }
+  else if(I.total<I.law.minPaid) return `Paid-up capital would be ${rp(I.total)}, below the ${rp(I.law.minPaid,true)} minimum under ${I.law.law}. Inject capital first.`;
+  if(I.partner&&I.partner!=='F'&&c.form==='UD'){ const pa=acct(I.partner); if(!pa) return 'Choose the second shareholder.'; if(pa.cash<I.pcap) return `${acctName(I.partner)} needs ${rp(I.pcap)} for its ${pc(I.pct,0)} stake and holds ${rp(pa.cash)}.`; }
+  if(o.form==='PT'){ if(!o.kom) return 'Choose a commissioner. A PT needs at least one (UU 40/2007 Art. 108).'; if(o.kom==='P'&&c.board.some(b=>b.who==='P'&&b.role==='dir')) return 'You run the business as its director, so you cannot also be its commissioner. Pick someone else.'; }
+  if(c.cash<I.fee) return `Not enough in ${coName(c)}'s account for the notary and ministry fees${I.appr?' and the KJPP appraisal':''}: ${rp(I.fee)} needed, ${rp(c.cash)} available.`;
+  return null;
+}
+function convertCo(c,o){
+  const pre=convertCheck(c,o); if(pre) return pre;
+  const I=convInfo(c,o), old=coName(c), was=c.form;
+  if(I.mode==='into'){
+    c.cash-=I.fee; book(c,'opex',I.fee);
+    const t=I.t, r=mergeCos(t,c,{fee:0,label:'inbreng'}); if(r) return r;
+    logm(`${old} was put into ${coName(t)} as a going concern (inbreng of the whole business), valued ${I.appr?'by a KJPP appraiser':'from its books by the notary'} at ${rp(I.eq)}. Fees ${rp(I.fee)}.`,'good');
+    return null;
+  }
+  let kom=null;
+  if(o.form==='PT'){ const tmp={id:c.id,reg:c.reg,hired:c.hired||[],level:c.level||0}; kom=pickBoard(tmp,o.kom,'kom'); if(!kom) return 'That candidate is no longer available this month. Pick again.'; }
+  const hf=kom&&kom.fee||0;
+  c.cash-=I.fee+hf; book(c,'opex',I.fee+hf);
+  if(I.partner&&I.partner!=='F'&&was==='UD'){ acct(I.partner).cash-=I.pcap; }
+  c.cash+=I.pcap;
+  const shares=Math.max(1,Math.round(I.total/1000));
+  if(I.ptp) c.own={P:shares};
+  else if(was==='CV'){ const f=I.pct; c.own={P:Math.round(shares*(1-f)),F:0}; c.own.F=shares-c.own.P; }
+  else { c.own={P:Math.round(shares*(1-I.pct))}; c.own[I.partner]=shares-c.own.P; }
+  c.shares=shares; c.paidIn=I.total; c.retained=0; c.reserve=0; c.form=o.form; c.founded=S.h; c.rups=c.rups||RUPS_DEF();
+  if(o.name&&o.name.trim()) c.name=o.name.trim();
+  c.board=c.board.filter(b=>b.role==='dir'); if(!c.board.length) c.board.push({id:nid('B'),who:'P',role:'dir',src:'self',skill:0,integ:100,sal:0,since:S.h});
+  if(!c.board.some(b=>b.fn==='ceo')) c.board[0].fn='ceo';
+  if(kom){ const {fee:_f,key:_k,...x}=kom; c.board.push({...x,id:nid('B')}); if(kom.key) (c.hired||(c.hired=[])).push(kom.key); }
+  updateLevel(c,true);
+  logm(`${old} became ${coName(c)} (${o.form==='PTP'?'PT Perorangan':'PT'}). The whole business moves across: ${c.units.length} unit${c.units.length===1?'':'s'}, cash, accounts and loans. Net assets ${rp(I.eq)} were valued ${I.appr?'by a KJPP appraiser':'from the books by the notary, no appraisal needed for a business this small'}; paid-up capital ${rp(I.total)}${I.pcap?`, of which ${rp(I.pcap)} from ${I.partner==='F'?'your family':acctName(I.partner)}`:''}. Fees ${rp(I.fee)}${hf?`, headhunter fee ${rp(hf)}`:''}.`,'good');
+  S.dirty=true; return null;
+}
+function convertModal(cid){
+  const c=acct(cid); if(!c||(c.form!=='UD'&&c.form!=='CV')) return;
+  const targets=S.C.filter(t=>t!==c&&(t.form==='PT'||t.form==='PTP')&&t.own.P>0);
+  const st={mode:'new',form:'PT',name:c.name,partner:'F',pct:1,kom:'',target:targets[0]?.id||''};
+  const draw=el=>{
+    const body=el.querySelector('#cv-body'), I=convInfo(c,st), chk=convertCheck(c,st), h=S.h;
+    const tmp={id:c.id,reg:c.reg,hired:c.hired||[],level:sizeOf(I.total||I.eq,turnover12(c),h)}, kc=candidates(tmp,'kom');
+    const candOpt=(x,sel)=>`<option value="${x.key}" ${sel===x.key?'selected':''}>${x.src==='pro'?'Professional':'Family'} · ${esc(x.name)}, ${esc(x.bg.toLowerCase())} · skill ${x.skill} · ${rp(x.sal)}/mo${x.fee?' + fee '+rp(x.fee):''}</option>`;
+    const partners=['F','P',...S.C.filter(x=>x.form==='PT'&&x!==c).map(x=>x.id)];
+    body.innerHTML=`<p class="note">${esc(coName(c))} is a ${c.form==='UD'?'sole proprietorship: its debts are your debts':'partnership with unlimited liability for you as active partner'}. Turning it into a PT moves the whole running business across at once: every unit, the bank account, deposito, bonds, shares, loans, teams and divisions. ${I.appr?`At ${rp(I.nonCash)} of non-cash assets, the notary needs an independent KJPP appraisal (${rp(kjppFee(h))}).`:`With ${rp(I.nonCash)} of non-cash assets it is small enough for the notary to take the values from its books, so no KJPP appraisal is needed (simplified: the game requires one above ${rp(kjppLimit(h))}).`}</p>
+      <div class="biz-pick" role="group" aria-label="How"><button type="button" data-mode="new" aria-pressed="${st.mode==='new'}"><b>Convert into a new PT</b><span>Same business and history, new legal form. Keeps its name if you like.</span></button><button type="button" data-mode="into" aria-pressed="${st.mode==='into'}" ${targets.length?'':'disabled'}><b>Put it into an existing PT</b><span>${targets.length?'Inbreng of the whole business; you get new shares in that PT and the ${c.form} closes.':'You have no PT yet.'}</span></button></div>
+      ${st.mode==='new'?`
+        <div class="fields"><label class="f">Name<input type="text" id="cv-name" maxlength="40" value="${esc(st.name)}"></label>
+        ${h>=H_PTP&&c.form==='UD'?`<label class="f">Legal form<select id="cv-form"><option value="PT" ${st.form==='PT'?'selected':''}>PT</option><option value="PTP" ${st.form==='PTP'?'selected':''}>PT Perorangan</option></select></label>`:''}</div>
+        ${st.form==='PT'&&c.form==='UD'?`<div class="fields"><label class="f">Second shareholder<select id="cv-partner">${partners.map(p=>`<option value="${p}" ${p===st.partner?'selected':''}>${esc(p==='F'?'Your family':p==='P'?'You personally':coName(acct(p)))}</option>`).join('')}</select></label><label class="f">Their share (%)<input type="number" id="cv-pct" min="1" max="49" value="${st.pct}"></label></div>`:c.form==='CV'?`<p class="note">Your family partner keeps their ${pc(I.pct,0)} as shares in the PT.</p>`:''}
+        ${st.form==='PT'?`<label class="f">Komisaris<select id="cv-kom"><option value="">Choose…</option><option value="P" ${st.kom==='P'?'selected':''}>Me, ${esc(S.name)}</option><option value="MOM" ${st.kom==='MOM'?'selected':''}>${esc(momName(c.id))}, your mother · skill 40 · unpaid</option>${kc.map(x=>candOpt(x,st.kom)).join('')}</select></label><p class="note">The current ${c.board.filter(b=>b.role==='dir').map(b=>b.who==='P'?'director (you)':b.name).join(', ')} becomes the Direktur Utama.</p>`:''}
+        <div class="rows">
+          <div class="row"><span class="k">Net assets moving in</span><span class="v">${rp(I.eq)}</span></div>
+          <div class="row"><span class="k">Paid-up capital</span><span class="v">${rp(I.total)}${st.form==='PT'?` · minimum ${rp(I.law.minPaid,true)}`:''}</span></div>
+          ${I.pcap?`<div class="row"><span class="k">Cash from the second shareholder</span><span class="v">${rp(I.pcap)} for ${pc(I.pct,0)}</span></div>`:''}`
+      :`<label class="f">Receiving PT<select id="cv-target">${targets.map(t=>`<option value="${t.id}" ${t.id===st.target?'selected':''}>${esc(coName(t))} · you hold ${pc(ownPct(t,'P'),0)}</option>`).join('')}</select></label>
+        <div class="rows">
+          <div class="row"><span class="k">Business valued at</span><span class="v">${rp(I.eq)}</span></div>
+          ${I.t?`<div class="row"><span class="k">New shares for you</span><span class="v">about ${NF.format(Math.round(I.eq*(c.form==='CV'?ownPct(c,'P'):1)/Math.max(100,equity(I.t)/I.t.shares)))} at ${rp(Math.max(100,equity(I.t)/I.t.shares))} each</span></div>`:''}`}
+          <div class="row"><span class="k">Notary and ministry${I.appr?' + KJPP appraisal':''}</span><span class="v">${rp(I.fee)}</span></div>
+          <div class="row"><span class="k">${esc(coName(c))} account</span><span class="v ${c.cash<I.fee?'down':''}">${rp(c.cash)}</span></div>
+        </div>
+      <p class="note ${chk?'down':''}">${chk?esc(chk):'Ready.'}</p>
+      <div class="btns"><button class="btn pri" id="cv-go">${st.mode==='new'?'Convert to '+(st.form==='PTP'?'PT Perorangan':'PT'):'Put the business in'}</button><button class="btn" data-act="close">Cancel</button></div>`;
+    const keep=()=>{ const g=q=>body.querySelector(q); if(g('#cv-name')) st.name=g('#cv-name').value; if(g('#cv-form')) st.form=g('#cv-form').value; if(g('#cv-partner')) st.partner=g('#cv-partner').value; if(g('#cv-pct')) st.pct=+g('#cv-pct').value||1; if(g('#cv-kom')) st.kom=g('#cv-kom').value; if(g('#cv-target')) st.target=g('#cv-target').value; };
+    body.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{ keep(); st.mode=b.dataset.mode; draw(el); });
+    body.querySelectorAll('select,input[type=number]').forEach(x=>x.addEventListener('change',()=>{ keep(); draw(el); }));
+    body.querySelector('#cv-go').onclick=()=>{ keep(); if(err(convertCo(c,st))) return; closeModal(); render(); };
+  };
+  openModal(`Turn ${coName(c)} into a PT`,'<div id="cv-body" style="display:flex;flex-direction:column;gap:12px"></div>',draw);
+}
+
 function isAncestor(a,b){ const seen=new Set(); const walk=x=>{ for(const k in x.own){ if(!(x.own[k]>0)||k==='P'||k==='F') continue; if(k===a.id) return true; if(seen.has(k)) continue; seen.add(k); const p=acct(k); if(p&&walk(p)) return true; } return false; }; return walk(b); }
 function mergeInfo(A,B){
   const eqB=equity(B), bv=Math.max(100,equity(A)/A.shares), iss=[];
@@ -2493,13 +2593,13 @@ function mergeInfo(A,B){
 }
 function mergeCheck(A,B){
   if(!B||A===B) return 'Choose another company to merge in.';
-  for(const x of [A,B]) if(x.form!=='PT') return `${coName(x)} is a ${x.form==='PTP'?'PT Perorangan':x.form}. Only regular PTs can merge (penggabungan, ${S.h<H_UU40?'UU 1/1995 Art. 102':'UU 40/2007 Art. 122'}).${x.form==='PTP'?' Convert it into a regular PT first.':' Move its units into a PT by inbreng instead.'}`;
+  for(const x of [A,B]) if(x.form!=='PT') return `${coName(x)} is a ${x.form==='PTP'?'PT Perorangan':x.form}. Only regular PTs can merge (penggabungan, ${S.h<H_UU40?'UU 1/1995 Art. 102':'UU 40/2007 Art. 122'}).${x.form==='PTP'?' Convert it into a regular PT first.':' Use Convert to PT on its company page to bring the whole business into a PT.'}`;
   if(isAncestor(B,A)) return `${coName(B)} owns ${coName(A)}. A company cannot be merged into its own subsidiary here: open ${coName(B)} and absorb ${coName(A)} instead.`;
   return null;
 }
-function mergeCos(A,B){
-  const pre=mergeCheck(A,B); if(pre) return pre;
-  const I=mergeInfo(A,B);
+function mergeCos(A,B,opt){
+  const pre=opt?null:mergeCheck(A,B); if(pre) return pre;
+  const I=mergeInfo(A,B); if(opt) I.fee=opt.fee||0;
   if(A.cash<I.fee+I.sev) return `Not enough in ${coName(A)}'s account. The merger needs ${rp(I.fee+I.sev)} (notary, newspaper announcement and ministry fees ${rp(I.fee)}${I.sev?`, plus ${rp(I.sev)} severance for ${coName(B)}'s professional board`:''}), but it holds ${rp(A.cash)}.`;
   A.cash-=I.fee+I.sev; book(A,'opex',I.fee); if(I.sev) book(A,'wage',I.sev);
   for(const x of I.iss){ A.own[x.k]=(A.own[x.k]||0)+x.ns; A.shares+=x.ns; }
@@ -2513,7 +2613,7 @@ function mergeCos(A,B){
   for(const o of S.orders) if(o.a===B.id) o.a=A.id;
   S.C.splice(S.C.indexOf(B),1); updateLevel(A,true);
   if(S.sel.co===B.id) S.sel.co=A.id; if(S.sel.acct===B.id) S.sel.acct=A.id;
-  logm(`${coName(B)} merged into ${coName(A)} (penggabungan). All assets, ${B.units.length} business unit${B.units.length===1?'':'s'} and ${rp(debt(B))} of loans move across; ${coName(B)} ceases to exist.${I.iss.length?' New shares: '+I.iss.map(x=>`${acctName(x.k)} ${NF.format(x.ns)}`).join(', ')+'.':''} Fees ${rp(I.fee)}${I.sev?`, severance ${rp(I.sev)}`:''}.`,'good');
+  if(!opt) logm(`${coName(B)} merged into ${coName(A)} (penggabungan). All assets, ${B.units.length} business unit${B.units.length===1?'':'s'} and ${rp(debt(B))} of loans move across; ${coName(B)} ceases to exist.${I.iss.length?' New shares: '+I.iss.map(x=>`${acctName(x.k)} ${NF.format(x.ns)}`).join(', ')+'.':''} Fees ${rp(I.fee)}${I.sev?`, severance ${rp(I.sev)}`:''}.`,'good');
   return null;
 }
 function spinModal(cid,uid){
@@ -2557,17 +2657,17 @@ function spinModal(cid,uid){
 }
 function inbrengModal(cid,uid){
   const c=acct(cid), u=c.units.find(x=>x.id===uid); if(!u) return;
-  const ts=inbrengTargets(c), b=BIZ[u.t], fee=kjppFee(S.h);
+  const ts=inbrengTargets(c), b=BIZ[u.t], fee=kjppNeed(u.book)?kjppFee(S.h):0;
   if(!ts.length) return err(c.form==='PT'?`${coName(c)} has no subsidiary PT to receive the unit. Found one first with "Found a subsidiary", then transfer the unit into it.`:`You hold shares in no PT that could receive the unit. Found a PT first, then transfer the unit into it.`);
   const draw=el=>{
     const body=el.querySelector('#ib-body'), tid=body.dataset.t||ts[0].id, t=acct(tid), holder=c.form==='PT'?c.id:'P', bv=Math.max(100,equity(t)/t.shares), ns=Math.max(1,Math.round(u.book/bv)), after=((t.own[holder]||0)+ns)/(t.shares+ns);
-    body.innerHTML=`<p class="note">Inbreng moves the unit into another company as a capital contribution. An independent appraiser (KJPP) values it, and the receiving PT issues new shares to ${holder==='P'?'you':esc(coName(c))} in return. Staff, stock and any crop in progress move with it.</p>
+    body.innerHTML=`<p class="note">Inbreng moves the unit into another company as a capital contribution. ${fee?'An independent appraiser (KJPP) values it':'It is small enough for the notary to value from the books, so no KJPP appraisal is needed'}, and the receiving PT issues new shares to ${holder==='P'?'you':esc(coName(c))} in return. Staff, stock and any crop in progress move with it.</p>
       <label class="f">Receiving company<select id="ib-t">${ts.map(x=>`<option value="${x.id}" ${x.id===tid?'selected':''}>${esc(coName(x))}</option>`).join('')}</select></label>
       <div class="rows">
         <div class="row"><span class="k">Appraised value (book)</span><span class="v">${rp(u.book)}</span></div>
         <div class="row"><span class="k">New shares at ${rp(bv)} each</span><span class="v">${NF.format(ns)}</span></div>
         <div class="row"><span class="k">${esc(acctName(holder))} stake in ${esc(coName(t))}</span><span class="v">${pc(ownPct(t,holder),1)} → ${pc(after,1)}</span></div>
-        <div class="row"><span class="k">KJPP appraisal fee</span><span class="v">${rp(fee)}</span></div>
+        <div class="row"><span class="k">KJPP appraisal fee</span><span class="v">${fee?rp(fee):'Not needed'}</span></div>${c.form!=='PT'?`<p class="note">To move the whole ${c.form} at once, use <b>Convert to PT</b> on the company page.</p>`:''}
       </div>
       <div class="btns"><button class="btn pri" id="ib-go">Transfer by inbreng</button><button class="btn" data-act="close">Cancel</button></div>`;
     body.querySelector('#ib-t').onchange=e=>{ body.dataset.t=e.target.value; draw(el); };
@@ -3009,12 +3109,33 @@ function openDivision(c,reg){
   if(!REG[reg]) return 'Choose a regency for the division office.';
   if(reg===c.reg) return `${REG[reg].n} is where the head office is. A division office goes somewhere else.`;
   if((c.divs||[]).some(v=>v.reg===reg)) return `${coName(c)} already has a division office in ${REG[reg].n}.`;
-  const v={id:nid('V'),reg,name:'Divisi '+provOf(reg),head:null,since:S.h}, head=autoHead(c,v,-2); head.tier='divhead';
+  const v={id:nid('V'),reg,name:divDefName(c,reg),head:null,since:S.h}, head=autoHead(c,v,-2); head.tier='divhead';
   const cost=divSetup(reg)+2*head.sal; if(c.cash<cost) return `Not enough in ${coName(c)}'s account to open the office and recruit its head: ${rp(cost)} needed, ${rp(c.cash)} available.`;
   c.cash-=cost; book(c,'opex',cost); v.head=head; (c.divs||(c.divs=[])).push(v);
   const n=c.units.filter(u=>officeFor(c,u.reg).div===v).length;
   logm(`${coName(c)} opened ${v.name} with an office in ${REG[reg].n} for ${rp(cost)}, led by ${head.name} (skill ${head.skill}). ${n} business unit${n===1?' now reports':'s now report'} to it instead of head office.`,'good');
   S.dirty=true; return null;
+}
+function divDefName(c,reg){ const p='Divisi '+provOf(reg), town=REG[reg].n.replace(/^(Kab\.|Kota) /,''); return (c.divs||[]).some(v=>v.name.toLowerCase()===p.toLowerCase()||provOf(v.reg)===provOf(reg))?'Divisi '+town:p; }
+function renameDiv(c,v,name){
+  name=(name||'').trim().replace(/\s+/g,' ');
+  if(!name) return 'Give the division a name.';
+  if(name.length>40) return 'Keep the name to 40 characters or fewer.';
+  if((c.divs||[]).some(x=>x!==v&&x.name.toLowerCase()===name.toLowerCase())) return `${coName(c)} already has a division called ${name}. Pick another name.`;
+  if(name===v.name) return null;
+  const old=v.name; v.name=name; logm(`${coName(c)} renamed ${old} (office in ${REG[v.reg].n}) to ${name}.`); S.dirty=true; return null;
+}
+function renameDivModal(cid,vid){
+  const c=acct(cid), v=(c.divs||[]).find(x=>x.id===vid); if(!v) return;
+  const same=c.divs.filter(x=>x!==v&&provOf(x.reg)===provOf(v.reg));
+  openModal(`Rename division · ${coName(c)}`,`<div style="display:flex;flex-direction:column;gap:12px">
+    <p class="note">${esc(v.name)} has its office in ${esc(REG[v.reg].n)}, ${esc(provOf(v.reg))}.${same.length?` ${coName(c)} also runs ${same.map(x=>esc(x.name)).join(', ')} in the same province, so a name after the town or area (Divisi Jawa Barat Selatan, Divisi Priangan) keeps them apart.`:''} The new name shows on the org chart, in reports and in the head's title.</p>
+    <label class="f">Division name<input type="text" id="dv-name" maxlength="40" value="${esc(v.name)}"></label>
+    <div class="btns"><button class="btn pri" id="dv-go">Rename</button><button class="btn" data-act="close">Cancel</button></div></div>`,el=>{
+      const i=el.querySelector('#dv-name'); i.focus(); i.select();
+      const go=()=>{ if(err(renameDiv(c,v,i.value))) return; closeModal(); render(); };
+      el.querySelector('#dv-go').onclick=go; i.onkeydown=e=>{ if(e.key==='Enter') go(); };
+    });
 }
 function divModal(cid){
   const c=acct(cid), Z=SZ(c);
@@ -3022,7 +3143,7 @@ function divModal(cid){
   const start=(c.units.map(u=>u.reg).filter(r=>r!==c.reg&&!(c.divs||[]).some(v=>v.reg===r)).sort((a,b)=>km(c.reg,b)-km(c.reg,a))[0])||c.reg;
   placeModal(`Open a regional division · ${coName(c)}`,start,reg=>{
     const now=c.units.reduce((s,u)=>s+monCost(c,u),0), lkN=c.units.length?c.units.reduce((s,u)=>s+leak(c,u),0)/c.units.length:0;
-    const fake={id:'tmp',reg,name:'Divisi '+provOf(reg),head:null}; c.divs.push(fake);
+    const fake={id:'tmp',reg,name:divDefName(c,reg),head:null}; c.divs.push(fake);
     const then=c.units.reduce((s,u)=>s+monCost(c,u),0), lkT=c.units.length?c.units.reduce((s,u)=>s+leak(c,u),0)/c.units.length:0, cov=c.units.filter(u=>officeFor(c,u.reg).div===fake);
     c.divs.pop();
     return `<p class="note">A division office manages the units nearest to it, so they are monitored from close by instead of from head office. It costs rent every month, and the game recruits a division head for you.</p><div class="rows">
@@ -3314,7 +3435,7 @@ function orgPanel(c){
       ${c.divs.map(v=>{ const units=c.units.filter(u=>officeFor(c,u.reg).div===v); return `<tr><td><b>${esc(v.name)}</b><div class="muted" style="font-size:.75rem">office in ${esc(REG[v.reg].n)} · since ${fdate(v.since)}</div></td>
         <td>${v.head?`${esc(v.head.name)} <span class="muted">· skill ${v.head.skill}</span><div class="muted" style="font-size:.75rem">${esc(v.head.bg)}</div>`:'<span class="muted">Being recruited, starts next month</span>'}</td>
         <td class="n">${units.length}</td><td class="n">${rp(divRent(v.reg,S.h)+(v.head?v.head.sal:0))}</td>
-        <td><button class="btn sm bad" data-act="closediv" data-id="${c.id}" data-v="${v.id}">Close</button></td></tr>`; }).join('')}
+        <td><div class="btns" style="justify-content:flex-end;flex-wrap:nowrap"><button class="btn sm" data-act="renamediv" data-id="${c.id}" data-v="${v.id}">Rename</button><button class="btn sm bad" data-act="closediv" data-id="${c.id}" data-v="${v.id}">Close</button></div></td></tr>`; }).join('')}
       </tbody></table></div>${c.divs.some(v=>v.head)?`<div class="tbl-wrap"><table>${th}<tbody>${c.divs.filter(v=>v.head).map(v=>personRow(c,{p:v.head,where:'div',div:v})).join('')}</tbody></table></div>`:''}`:'<p class="note">No regional divisions. Every unit is monitored from head office.</p>'}</div></section>
 
   <section class="panel"><div class="panel-h"><div><h3>Annual pay review</h3><div class="note">Runs every 1 January. Market rates rise with the regional minimum wage whatever you choose.</div></div></div>
