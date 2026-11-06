@@ -1260,6 +1260,7 @@ function migrate(){
   const mapR=r=>REG[r]?r:(OLD_REG[r]||'3171'); S.home=mapR(S.home||'3171');
   S.sel.regf=S.sel.regf||{p:'',b:''}; S.sel.rep=S.sel.rep||{e:'P',per:'Q',i:0}; S.P.hist=S.P.hist||[];
   for(const c of S.C){ c.reg=c.reg?mapR(c.reg):S.home; for(const u of c.units) u.reg=mapR(u.reg); for(const v of c.divs||[]) v.reg=mapR(v.reg); c.outs=c.outs||{}; for(const p of [c.mon,c.ytd,c.ytdPrev]) if(p) p.outs=p.outs||0; c.divs=c.divs||[]; c.pay=c.pay||PAY_DEF(); c.mfees=c.mfees||{}; for(const p of [c.mon,c.ytd,c.ytdPrev]) if(p){ p.mfi=p.mfi||0; p.mfee=p.mfee||0; } if(!c.board) c.board=defaultBoard(c); c.rups=c.rups||RUPS_DEF(); for(const b of c.board) if(b.mkt==null) b.mkt=b.sal; for(const p of [c.mon,c.ytd,c.ytdPrev]) if(p){ p.mon=p.mon||0; p.loss=p.loss||0; } for(const u of c.units) if(!REG[u.reg]) u.reg=S.home; }
+  for(const c of S.C){ const tot=Object.values(c.own||{}).reduce((x,y)=>x+(y>0?y:0),0); if(c.shares>0&&tot<c.shares-0.5&&c.parent==='P'){ const miss=c.shares-tot; c.own.P=(c.own.P||0)+miss; logm(`Share register of ${coName(c)} corrected: ${NF.format(miss)} unassigned shares from the PT conversion returned to you.`); } }
   for(const c of S.C) if(c.level==null) updateLevel(c,true);
   for(const c of S.C) migrateOrg(c);
   if(!S.bench){ const I=S.inv; S.bench=I?{contrib:I.contrib,bDep:I.bDep,bIhsgU:I.bIhsgU,bInfU:I.bInfU,fraudY:0}:newBench(Math.max(1,nwP())); }
@@ -2602,6 +2603,7 @@ function convertCheck(c,o){
   }
   if(o.form==='PTP'){ if(h<H_PTP) return 'PT Perorangan only exists from February 2021 (PP 8/2021).'; if(c.form==='CV') return 'A CV has two partners; a PT Perorangan has one. Convert to a regular PT.'; if((c.level||0)>1) return `A PT Perorangan is only for micro and small businesses. ${coName(c)} is a Usaha ${SZ(c).n}.`; }
   else if(I.total<I.law.minPaid) return `Paid-up capital would be ${rp(I.total)}, below the ${rp(I.law.minPaid,true)} minimum under ${I.law.law}. Inject capital first.`;
+  if(I.partner==='P') return 'You already own the business, so you cannot also be the second shareholder. A PT needs two different founders: pick your family or one of your PTs, or choose PT Perorangan if you want to own it alone.';
   if(I.partner&&I.partner!=='F'&&c.form==='UD'){ const pa=acct(I.partner); if(!pa) return 'Choose the second shareholder.'; if(pa.cash<I.pcap) return `${acctName(I.partner)} needs ${rp(I.pcap)} for its ${pc(I.pct,0)} stake and holds ${rp(pa.cash)}.`; }
   if(o.form==='PT'){ if(!o.kom) return 'Choose a commissioner. A PT needs at least one (UU 40/2007 Art. 108).'; if(o.kom==='P'&&c.board.some(b=>b.who==='P'&&b.role==='dir')) return 'You run the business as its director, so you cannot also be its commissioner. Pick someone else.'; }
   if(c.cash<I.fee) return `Not enough in ${coName(c)}'s account for the notary and ministry fees${I.appr?' and the KJPP appraisal':''}: ${rp(I.fee)} needed, ${rp(c.cash)} available.`;
@@ -2625,7 +2627,7 @@ function convertCo(c,o){
   const shares=Math.max(1,Math.round(I.total/1000));
   if(I.ptp) c.own={P:shares};
   else if(was==='CV'){ const f=I.pct; c.own={P:Math.round(shares*(1-f)),F:0}; c.own.F=shares-c.own.P; }
-  else { c.own={P:Math.round(shares*(1-I.pct))}; c.own[I.partner]=shares-c.own.P; }
+  else { c.own={P:Math.round(shares*(1-I.pct))}; c.own[I.partner]=(c.own[I.partner]||0)+shares-c.own.P; }
   c.shares=shares; c.paidIn=I.total; c.retained=0; c.reserve=0; c.form=o.form; c.founded=S.h; c.rups=c.rups||RUPS_DEF();
   if(o.name&&o.name.trim()) c.name=o.name.trim();
   c.board=c.board.filter(b=>b.role==='dir'); if(!c.board.length) c.board.push({id:nid('B'),who:'P',role:'dir',src:'self',skill:0,integ:100,sal:0,since:S.h});
@@ -2643,7 +2645,7 @@ function convertModal(cid){
     const body=el.querySelector('#cv-body'), I=convInfo(c,st), chk=convertCheck(c,st), h=S.h;
     const tmp={id:c.id,reg:c.reg,hired:c.hired||[],level:sizeOf(I.total||I.eq,turnover12(c),h)}, kc=candidates(tmp,'kom');
     const candOpt=(x,sel)=>`<option value="${x.key}" ${sel===x.key?'selected':''}>${x.src==='pro'?'Professional':'Family'} · ${esc(x.name)}, ${esc(x.bg.toLowerCase())} · skill ${x.skill} · ${rp(x.sal)}/mo${x.fee?' + fee '+rp(x.fee):''}</option>`;
-    const partners=['F','P',...S.C.filter(x=>x.form==='PT'&&x!==c).map(x=>x.id)];
+    const partners=['F',...S.C.filter(x=>x.form==='PT'&&x!==c).map(x=>x.id)];
     body.innerHTML=`<p class="note">${esc(coName(c))} is a ${c.form==='UD'?'sole proprietorship: its debts are your debts':'partnership with unlimited liability for you as active partner'}. Turning it into a PT moves the whole running business across at once: every unit, the bank account, deposito, bonds, shares, loans, teams and divisions. ${I.appr?`At ${rp(I.nonCash)} of non-cash assets, the notary needs an independent KJPP appraisal (${rp(kjppFee(h))}).`:`With ${rp(I.nonCash)} of non-cash assets it is small enough for the notary to take the values from its books, so no KJPP appraisal is needed (simplified: the game requires one above ${rp(kjppLimit(h))}).`}</p>
       <div class="biz-pick" role="group" aria-label="How"><button type="button" data-mode="new" aria-pressed="${st.mode==='new'}"><b>Convert into a new PT</b><span>Same business and history, new legal form. Keeps its name if you like.</span></button><button type="button" data-mode="into" aria-pressed="${st.mode==='into'}" ${targets.length?'':'disabled'}><b>Put it into an existing PT</b><span>${targets.length?'Inbreng of the whole business; you get new shares in that PT and the ${c.form} closes.':'You have no PT yet.'}</span></button></div>
       ${st.mode==='new'?`
