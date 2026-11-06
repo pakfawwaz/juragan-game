@@ -1303,7 +1303,7 @@ function step(){
   for(const c of S.C) for(const u of c.units){
     const b=BIZ[u.t]; if(b.kind!=='retail'||u.w<=0) continue;
     if(hr<b.open[0]||hr>=b.open[1]) continue;
-    const daily=b.lv[u.lv].rev*cpi(S.h)*REG[u.reg].dem*staffF(u)*moraleF(u,S.h)*(u.t==='wisata'?1:seasonRetail(S.h))*shockF(u.t,u.reg,S.h)*(u.df||1)*retailMult(u.t,u.reg)*mgmtF(c)*(1-leak(c,u))*(1+0.08*fnScore(c,'mkt')/100)*(1+0.04*fnScore(c,'hr')/100);
+    const daily=b.lv[u.lv].rev*cpi(S.h)*REG[u.reg].dem*staffF(u)*moraleF(u,S.h)*(u.t==='wisata'?1:seasonRetail(S.h))*shockF(u.t,u.reg,S.h)*(u.df||1)*retailMult(u.t,u.reg)*bizF(c,u)*mgmtF(c)*(1-leak(c,u))*(1+0.08*fnScore(c,'mkt')/100)*(1+0.04*fnScore(c,'hr')/100);
     const rev=daily/(b.open[1]-b.open[0])*Math.max(0.2,1+0.2*rg());
     const cogs=rev*(1-b.margin)*(1-0.04*jobQ(c,'proc'));
     c.cash+=rev-cogs; book(c,'rev',rev); book(c,'cogs',cogs); u.mrev=(u.mrev||0)+rev; const m=um(u); m.rev+=rev; m.cost+=cogs;
@@ -1342,8 +1342,8 @@ function tryStart(c,u,quiet){
 }
 function harvest(c,u){
   const b=BIZ[u.t], L=b.lv[u.lv];
-  const fail=rnd()<b.fail*(1-0.5*jobQ(c,'qc'));
-  const kg=Math.round(L.yield*(u.w<=0?0.35:0.6+0.4*Math.min(1.08,staffF(u)))*moraleF(u,S.h)*specF(u)*mgmtF(c)*(1-leak(c,u))*(1+0.04*fnScore(c,'hr')/100)*Math.exp(0.07*rg())*(fail?0.2+0.3*rnd():1));
+  const bf=bizF(c,u), fail=rnd()<b.fail*(1-0.5*jobQ(c,'qc'))*(bf<0.85?1.3:1.1-0.4*(bf-0.85)/0.25);
+  const kg=Math.round(L.yield*(u.w<=0?0.35:0.6+0.4*Math.min(1.08,staffF(u)))*moraleF(u,S.h)*specF(u)*bf*mgmtF(c)*(1-leak(c,u))*(1+0.04*fnScore(c,'hr')/100)*Math.exp(0.07*rg())*(fail?0.2+0.3*rnd():1));
   const price=Math.round(commodityPrice(u.t,S.h)*Math.exp(b.vol*rg())*(1+0.05*fnScore(c,'mkt')/100)/10)*10;
   const rev=kg*price;
   c.cash+=rev; book(c,'rev',rev); um(u).rev+=rev;
@@ -1934,14 +1934,14 @@ function unitCard(c,u){
     ? L(()=>{ const hr=dOf(S.h).getUTCHours(); if(u.w<=0) return ['Closed: no staff','down']; return [(hr>=b.open[0]&&hr<b.open[1]?'Open now':'Closed for the night')+' · sales this month '+rp(u.mrev||0),'']; })
     : L(()=> u.ph==='grow' ? [`Growing · day ${u.d} of ${b.cycle} · inputs ${rp(u.inCost||0)}`,''] : [u.wait?'Idle: waiting for money in the company account to restock':'Idle', u.wait?'down':'muted']);
   return `<div class="unit">
-    <div><h4>${b.n} · ${Lv.l} ${boostChip(u.t,u.reg)}</h4><div class="meta">${REG[u.reg].n}, ${esc(provOf(u.reg))} · needs ${Lv.staff} worker${Lv.staff>1?'s':''} · UMR here ${L(()=>rp(umr(u.reg,S.h),true))}</div>
+    <div><h4>${b.n} · ${Lv.l} ${boostChip(u.t,u.reg)} ${L(()=>{ const f=bizF(c,u); return f<0.85?`<span class="chip bad">No ${SECTORS[SEC_OF[u.t]].n} team</span>`:f<0.95&&!jobQ(c,'bz_'+SEC_OF[u.t])?`<span class="chip warn">Main line run by the board · 90%</span>`:''; },'span')}</h4><div class="meta">${REG[u.reg].n}, ${esc(provOf(u.reg))} · needs ${Lv.staff} worker${Lv.staff>1?'s':''} · UMR here ${L(()=>rp(umr(u.reg,S.h),true))}</div>
       <div class="meta">${L(()=>{const o=officeFor(c,u.reg);return `Monitoring ${rp(monCost(c,u))}/month from ${officeName(c,o)}${o.d?', '+NF.format(o.d)+' km':''} · leakage ${pc(leak(c,u),1)}`;})}</div>
       <div class="meta">${status}</div>
       <div class="meta">${L(()=>{const t=unitT12(u); if(!t.n) return 'No full month of results yet'; const nr=spinReady(u); return [`Last ${t.n} month${t.n>1?'s':''}: net ${rp(t.net)}${c.form==='PT'?(nr?' · not ready to spin off':' · successful: ready to spin off'):''}`, t.net<0?'down':!nr&&c.form==='PT'?'up':''];})}</div>
       ${b.kind==='cycle'?LH(()=>`<i style="width:${Math.round(100*(u.ph==='grow'?u.d:0)/b.cycle)}%"></i>`,'div','prog'):''}
       ${b.kind==='cycle'?`<div class="meta">${L(()=>u.last?`Last harvest ${fdate(u.last.h)}: ${NF.format(u.last.kg)} ${unitOf(b)} at ${rp(u.last.price,true)} = ${rp(u.last.rev)} (inputs ${rp(u.last.cost)})`:'No harvest yet.')}</div>`:''}
     </div>
-    <div class="num" style="text-align:right">${L(()=>'Book '+rp(u.book))}<div class="meta">${L(()=>'Productivity '+pc(staffF(u)*moraleF(u,S.h)*unitBoost(u)*mgmtF(c)*(1-leak(c,u)),0))}</div></div>
+    <div class="num" style="text-align:right">${L(()=>'Book '+rp(u.book))}<div class="meta">${L(()=>'Productivity '+pc(staffF(u)*moraleF(u,S.h)*unitBoost(u)*bizF(c,u)*mgmtF(c)*(1-leak(c,u)),0))}</div></div>
     <div class="ctl">
       <label class="f">Workers<span class="stepper"><button data-act="w" data-id="${c.id}" data-u="${u.id}" data-v="-${wStep(u)}" aria-label="Fewer workers">−</button><span>${u.w}</span><button data-act="w" data-id="${c.id}" data-u="${u.id}" data-v="${wStep(u)}" aria-label="More workers">+</button></span></label>
       <label class="f">Wage / worker / month<input type="number" id="sal-${u.id}" data-chg="sal" data-id="${c.id}" data-u="${u.id}" min="0" step="50000" value="${Math.round(u.sal)}" style="width:150px"></label>
@@ -2236,6 +2236,7 @@ function unitModal(cid){
       <div class="rows">
         <div class="row"><span class="k">Setup (${Lv.l})</span><span class="v">${rp(cost)}</span></div>
         <div class="row"><span class="k">Workers needed</span><span class="v">${NF.format(Lv.staff)} × ${rp(wage,true)}${b.wage?` (${String(b.wage).replace('.',',')}× UMR)`:''}</span></div>
+        <div class="row"><span class="k">${SECTORS[SEC_OF[st.t]].n} business team</span>${(()=>{ const k=SEC_OF[st.t], q=jobQ(c,'bz_'+k); const main=!c.units.length||mainSec(c)===k; return q>0?`<span class="v up">In place, quality ${Math.round(q*100)}</span>`:main?`<span class="v ${(c.level||0)<=1?'':'warn'}">${(c.level||0)<=1?'Not needed yet: the board runs the main line':'None: the main line runs at 90% without one'}</span>`:`<span class="v down">None: a new line runs at 80% until you set one up</span>`; })()}</div>
         <div class="row"><span class="k">${b.kind==='retail'?'Local demand':'Regional specialty'}</span><span class="v ${sp>1.01?'up':sp<0.99?'down':''}">${b.kind==='retail'?'×'+sp.toFixed(2).replace('.',','):sp>1?'Yes, +25% output':'No'}</span></div>
         <div class="row"><span class="k">Monitoring from ${esc(officeName(c,officeFor(c,st.reg)))}</span><span class="v">${rp(monCostR(c,st.reg))} / month</span></div>
         <div class="row"><span class="k">Expected leakage with this board</span><span class="v ${leakR(c,st.reg)>0.08?'down':''}">${pc(leakR(c,st.reg),1)}</span></div>
@@ -3304,16 +3305,37 @@ const JOBS={
   csr:{n:'CSR programmes (UU 40/2007 Art. 74)',fn:'corp',lv:3,w:0.3,miss:'Fines if you run plantations, fisheries, mines or oil and gas'},
   strategy:{n:'Corporate planning',fn:'corp',lv:3,w:0.3,miss:'Lower management score'},
 };
-const JOB_FN={fin:'Finance',ops:'Operations',mkt:'Marketing',hr:'People',corp:'Corporate & legal'};
+// Business lines: every line a company runs needs its own technical team.
+const SECTORS={
+  agri:{n:'Agribusiness',t:['padi','cabai','jagung','bawang','tembakau','sawit','karet','kopi','kakao','cengkeh']},
+  farm:{n:'Livestock & fisheries',t:['lele','ayam','sapi','udang','bandeng','rumput','tangkap']},
+  trade:{n:'Retail & fuel distribution',t:['warung','agen_lpg','spbu']},
+  food:{n:'Food & hospitality',t:['kuliner','wisata']},
+  craft:{n:'Manufacturing & crafts',t:['konveksi','batik','mebel']},
+  logi:{n:'Logistics & transport',t:['logistik']},
+  mine:{n:'Mining, oil & gas',t:['batubara','minyak','gas']},
+  bank:{n:'Banking',t:['bpr']},
+  tech:{n:'IT services',t:['konsultan_ti']},
+  outs:{n:'Outsourcing services',t:['alihdaya']},
+};
+const SEC_OF={}; for(const k in SECTORS) for(const t of SECTORS[k].t) SEC_OF[t]=k;
+for(const k in SECTORS) JOBS['bz_'+k]={n:`${SECTORS[k].n} business team`,fn:'biz',sec:k,lv:0,w:0.6,miss:'Side lines run at 80% and fail more often; the main line at 90% once the company is Menengah'};
+const hasSec=(c,k)=>c.units.some(u=>SEC_OF[u.t]===k);
+const needJob=(c,j)=>JOBS[j].lv<=(c.level||0)&&(!JOBS[j].sec||hasSec(c,JOBS[j].sec));
+function mainSec(c){ const n={}; for(const u of c.units){ const k=SEC_OF[u.t]; n[k]=(n[k]||0)+1; } return Object.keys(n).sort((a,b)=>n[b]-n[a])[0]; }
+// Output factor from the business team. Without one: the main line is run by the directors (fine while Mikro or Kecil, 0.9 above);
+// any other line runs at 0.8. With a team: 0.85 (weak) to 1.1 (excellent).
+function bizF(c,u){ const k=SEC_OF[u.t], q=jobQ(c,'bz_'+k); if(q>0) return 0.85+0.25*q; if(mainSec(c)===k) return (c.level||0)<=1?1:0.9; return 0.8; }
+const JOB_FN={fin:'Finance',ops:'Operations',mkt:'Marketing',hr:'People',corp:'Corporate & legal',biz:'Business lines'};
 const DEPT_MAX=[1,3,6,12], DEPT_SCALE=[1,1.3,1.8,2.5];
 const HEADT=[{k:'staff',t:'Koordinator'},{k:'mgr',t:'Manajer'},{k:'mgr',t:'Manajer'},{k:'vp',t:'VP'}];
 const RESOURCE=['sawit','karet','kopi','kakao','tangkap','logistik','udang','rumput','bandeng','cengkeh','tembakau','batubara','minyak','gas'];
-const jobsAt=lv=>Object.keys(JOBS).filter(j=>JOBS[j].lv<=lv);
+const jobsAt=(lv,c)=>Object.keys(JOBS).filter(j=>JOBS[j].lv<=lv&&(!JOBS[j].sec||(c&&hasSec(c,JOBS[j].sec))));
 const deptOf=(c,j)=>(c.depts||[]).find(d=>d.jobs.includes(j));
-function deptNeed(c,d,jobs){ const lv=c.level||0, js=(jobs||d.jobs).filter(j=>JOBS[j].lv<=lv); return Math.max(1,Math.round(js.reduce((s,j)=>s+JOBS[j].w,0)*(1+c.units.length/6)*DEPT_SCALE[lv])); }
-function deptFocus(c,jobs){ const js=jobs.filter(j=>JOBS[j].lv<=(c.level||0)), n=Math.max(1,js.length), nf=new Set(js.map(j=>JOBS[j].fn)).size; return 1/(1+0.1*(n-1))*(1-0.08*Math.max(0,nf-1)); }
+function deptNeed(c,d,jobs){ const lv=c.level||0, js=(jobs||d.jobs).filter(j=>needJob(c,j)); return Math.max(1,Math.round(js.reduce((s,j)=>s+JOBS[j].w,0)*(1+c.units.length/6)*DEPT_SCALE[lv])); }
+function deptFocus(c,jobs){ const js=jobs.filter(j=>needJob(c,j)), n=Math.max(1,js.length), nf=new Set(js.map(j=>JOBS[j].sec?'biz:'+JOBS[j].sec:JOBS[j].fn)).size; return 1/(1+0.1*(n-1))*(1-0.08*Math.max(0,nf-1)); }
 function deptQ(c,d){ return clamp((d.head?d.head.skill:30)/100*deptFocus(c,d.jobs)*Math.min(1,d.staff/deptNeed(c,d)),0,1); }
-function jobQ(c,j){ if(JOBS[j].lv>(c.level||0)) return 0; if(c.outs&&c.outs[j]) return outQ(c,j); const d=deptOf(c,j); return d?deptQ(c,d):0; }
+function jobQ(c,j){ if(!needJob(c,j)) return 0; if(c.outs&&c.outs[j]) return outQ(c,j); const d=deptOf(c,j); return d?deptQ(c,d):0; }
 function fnScore(c,fn){
   const js=jobsAt(c.level||0).filter(j=>JOBS[j].fn===fn), avg=js.length?js.reduce((s,j)=>s+jobQ(c,j),0)/js.length:0;
   let dir=0; if((c.level||0)>=1&&(c.form==='PT'||c.form==='PTP')) for(const b of c.board) if(b.role==='dir'&&b.fn===fn) dir=Math.max(dir,skillOf(b,c));
@@ -3367,11 +3389,11 @@ function closeDept(c,d){ const sev=Math.round(2*(d.head?d.head.sal:0)+d.staff*d.
 function deptModal(cid,did){
   const c=acct(cid), d=did?(c.depts||[]).find(x=>x.id===did):null, lv=c.level||0;
   if(!d&&(c.depts||[]).length>=DEPT_MAX[lv]) return err(`As a Usaha ${SZ(c).n}, ${coName(c)} can run at most ${DEPT_MAX[lv]} team${DEPT_MAX[lv]>1?'s':''}. Give an existing team more jobs, or grow: ${nextLevelText(c)}`);
-  const st={name:d?d.name:'',jobs:d?[...d.jobs]:jobsAt(lv).filter(j=>!deptOf(c,j)).slice(0,2),touched:!!d};
+  const st={name:d?d.name:'',jobs:d?[...d.jobs]:jobsAt(lv,c).filter(j=>!deptOf(c,j)&&!(c.outs||{})[j]).slice(0,2),touched:!!d};
   const draw=el=>{
     const body=el.querySelector('#dp-body'), plan=deptPlan(c,st.jobs.length?st.jobs:['acct']);
-    const groups=Object.keys(JOB_FN).map(fn=>[fn,jobsAt(lv).filter(j=>JOBS[j].fn===fn)]).filter(([,js])=>js.length);
-    if(!st.touched&&st.jobs.length){ const fns=[...new Set(st.jobs.map(j=>JOBS[j].fn))]; st.name=fns.map(f=>({fin:'Keuangan',ops:'Operasional',mkt:'Pemasaran',hr:'SDM',corp:'Legal & Korporat'}[f])).join(' & '); }
+    const groups=Object.keys(JOB_FN).map(fn=>[fn,jobsAt(lv,c).filter(j=>JOBS[j].fn===fn)]).filter(([,js])=>js.length);
+    if(!st.touched&&st.jobs.length){ const fns=[...new Set(st.jobs.map(j=>JOBS[j].fn))]; st.name=fns.map(f=>f==='biz'?'Bisnis '+st.jobs.filter(j=>JOBS[j].sec).map(j=>SECTORS[JOBS[j].sec].n.split(/[ ,&]/)[0]).join(' & '):({fin:'Keuangan',ops:'Operasional',mkt:'Pemasaran',hr:'SDM',corp:'Legal & Korporat'}[f])).join(' & '); }
     body.innerHTML=`<p class="note">Tick the jobs this team handles. One team can take several, but each extra job, and above all jobs from different areas, spreads it thinner. The game recruits the team head and staff for you and resizes the team every month as the company grows.</p>
       <label class="f">Team name<input type="text" id="dp-name" maxlength="40" value="${esc(st.name)}" placeholder="Keuangan & Pajak"></label>
       ${groups.map(([fn,js])=>`<div class="eyebrow">${JOB_FN[fn]}</div><div class="rows">${js.map(j=>{ const o=deptOf(c,j); return `<label class="row check" style="justify-content:space-between"><span><input type="checkbox" data-j="${j}" ${st.jobs.includes(j)?'checked':''}> ${esc(JOBS[j].n)}</span><span class="muted" style="font-size:.78rem">${(c.outs||{})[j]?'outsourced to '+esc(c.outs[j].name):o&&o!==d?'now with '+esc(o.name):o===d&&d?'this team':'unhandled'}</span></label>`; }).join('')}</div>`).join('')}
@@ -3391,7 +3413,7 @@ function deptModal(cid,did){
   openModal(d?`Change ${d.name} · ${coName(c)}`:`Set up a team · ${coName(c)}`,'<div id="dp-body" style="display:flex;flex-direction:column;gap:12px"></div>',draw);
 }
 function deptSection(c){
-  const lv=c.level||0, avail=jobsAt(lv), open=avail.filter(j=>!deptOf(c,j)&&!(c.outs||{})[j]), later=Object.keys(JOBS).filter(j=>JOBS[j].lv===lv+1);
+  const lv=c.level||0, avail=jobsAt(lv,c), open=avail.filter(j=>!deptOf(c,j)&&!(c.outs||{})[j]), later=Object.keys(JOBS).filter(j=>JOBS[j].lv===lv+1&&!JOBS[j].sec);
   return `<section class="panel"><div class="panel-h"><div><h3>Things to do</h3><div class="note">Jobs a Usaha ${SZ(c).n} has to get done. Handle them by setting up teams or outsourcing to a vendor; ${open.length?`<b class="warn">${open.length} unhandled</b>`:'everything is covered'}.</div></div><button class="btn sm pri" data-act="newdept" data-id="${c.id}">Set up a team (${(c.depts||[]).length}/${DEPT_MAX[lv]})</button></div>
     <div class="panel-b">
       <div class="rows">${FNS.map(fn=>`<div class="row"><span class="k">${FN[fn].en} <span class="muted">· ${FN_EFF[fn]}</span><div class="muted" style="font-size:.75rem">${L(()=>{const l=fnLead(c,fn);return l?'Covered by '+l:'Nobody covers this yet';})}</div></span>${LH(()=>{const v=fnScore(c,fn);return `<span style="display:inline-flex;gap:8px;align-items:center"><span class="prog" style="width:100px"><i style="width:${v}%"></i></span>${v}</span>`;},'span','v')}</div>`).join('')}</div>
@@ -3403,7 +3425,7 @@ function deptSection(c){
   <section class="panel"><div class="panel-h"><div><h3>Teams</h3><div class="note">Team heads carry the title ${HEADT[lv].t} at this size${lv<3?' and become VP at Usaha Besar':''}. Staff are hired and let go automatically as the workload changes.</div></div></div>
     <div class="panel-b">${(c.depts||[]).length?(c.depts.map(d=>{ const need=deptNeed(c,d), cost=(d.head?d.head.sal:0)+d.staff*d.staffSal*(1+bpjsRate(S.h)); return `<div class="unit"><div><h4>${esc(d.name)}</h4>
         <div class="meta">${d.head?`${esc(headTitle(c,d))}: ${esc(d.head.name)} · skill ${d.head.skill} · ${esc(d.head.bg)}`:'No head yet'} · ${d.staff} staff (workload ${need})</div>
-        <div class="meta" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">${d.jobs.map(j=>`<span class="chip ${JOBS[j].lv>lv?'':'good'}">${esc(JOBS[j].n)}${JOBS[j].lv>lv?' · not needed yet':''}</span>`).join('')||'<span class="chip bad">No jobs</span>'}</div>
+        <div class="meta" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">${d.jobs.map(j=>`<span class="chip ${needJob(c,j)?'good':''}">${esc(JOBS[j].n)}${needJob(c,j)?'':' · not needed now'}</span>`).join('')||'<span class="chip bad">No jobs</span>'}</div>
         <div class="meta">${L(()=>`Quality ${Math.round(deptQ(c,d)*100)} · focus ${pc(deptFocus(c,d.jobs),0)}`)}</div></div>
         <div style="text-align:right"><div class="num">${rp(cost)} / mo</div><div class="btns" style="justify-content:flex-end;margin-top:6px"><button class="btn sm" data-act="editdept" data-id="${c.id}" data-v="${d.id}">Change jobs</button><button class="btn sm bad" data-act="closedept" data-id="${c.id}" data-v="${d.id}">Close</button></div></div></div>`; }).join('')+`<div class="tbl-wrap"><table><thead><tr><th>Role</th><th>Name</th><th>From</th><th class="n">Skill</th><th>References</th><th class="n">Pay / month</th><th></th></tr></thead><tbody>${c.depts.filter(d=>d.head).map(d=>personRow(c,{p:d.head,where:'dept',dept:d})).join('')}</tbody></table></div><p class="note">You can adjust a team head's pay or replace them; a dismissed head is replaced by a new hire automatically.</p>`):'<p class="note">No teams yet. Every job above is unhandled.</p>'}</div></section>`;
 }
@@ -3411,7 +3433,7 @@ function deptSection(c){
 /* ---------- Outsourcing (alih daya) */
 // job: [group business type that can deliver it (or null), what an outside vendor is called]
 const OUTSRC={
-  acct:['alihdaya','accounting services firm'], tax:[null,'tax consultant'], payroll:['alihdaya','payroll bureau'], recruit:['alihdaya','recruitment agency'],
+  acct:[null,'accounting services firm'], tax:[null,'tax consultant'], payroll:['alihdaya','payroll bureau'], recruit:['alihdaya','recruitment agency'],
   logi:['alihdaya','3PL logistics provider'], it:['konsultan_ti','IT vendor'], ga:['alihdaya','facility management firm'], legal:[null,'law firm'], audit:[null,'public accounting firm (KAP)'],
 };
 const VCAP=[2,6,20];
@@ -3431,9 +3453,11 @@ function vendorOffers(c,j){
 function vendorKind(j){ return OUTSRC[j]&&OUTSRC[j][0]; }
 function vendorCap(v,kind){ return v.units.filter(u=>u.t===kind).reduce((s,u)=>s+VCAP[u.lv],0); }
 function vendorUsed(v,kind){ let n=0; for(const c of S.C) for(const j in c.outs||{}){ const o=c.outs[j]; if(o.v===v.id&&vendorKind(j)===kind) n++; } return n; }
-function ownVendorQ(v,kind){ const us=v.units.filter(u=>u.t===kind); if(!us.length) return 0; const lv=Math.max(...us.map(u=>u.lv)); return clamp((0.48+0.12*lv)*(0.8+0.35*mgmt(v)/100)*Math.min(1.05,Math.max(...us.map(u=>staffF(u)))),0,0.95); }
-function groupVendors(c,j){ const kind=vendorKind(j); if(!kind) return []; return S.C.filter(v=>v!==c&&v.units.some(u=>u.t===kind)).map(v=>({v:v.id,name:coName(v),q:ownVendorQ(v,kind),m:1,cap:vendorCap(v,kind),used:vendorUsed(v,kind)})); }
-function outQ(c,j){ const o=(c.outs||{})[j]; if(!o) return 0; if(o.v==='X') return o.q; const v=acct(o.v); return v?ownVendorQ(v,vendorKind(j)):0; }
+function vendorCovers(v,j){ const kind=vendorKind(j); if(!kind||!v.units.some(u=>u.t===kind)) return false; if(kind!=='alihdaya'||j==='ga') return true; return !!deptOf(v,j)||(j==='logi'&&jobQ(v,'bz_logi')>0); }
+function ownVendorQ(v,kind,j){ const us=v.units.filter(u=>u.t===kind); if(!us.length) return 0; const lv=Math.max(...us.map(u=>u.lv)), tq=kind==='alihdaya'&&j&&j!=='ga'?Math.max(jobQ(v,j),j==='logi'?jobQ(v,'bz_logi'):0):Math.max(0.5,jobQ(v,'bz_'+SEC_OF[kind]));
+  return clamp((0.48+0.12*lv)*(0.8+0.35*mgmt(v)/100)*(0.7+0.5*tq)*Math.min(1.05,Math.max(...us.map(u=>staffF(u)))),0,0.95); }
+function groupVendors(c,j){ const kind=vendorKind(j); if(!kind) return []; return S.C.filter(v=>v!==c&&vendorCovers(v,j)).map(v=>({v:v.id,name:coName(v),q:ownVendorQ(v,kind,j),m:1,cap:vendorCap(v,kind),used:vendorUsed(v,kind)})); }
+function outQ(c,j){ const o=(c.outs||{})[j]; if(!o) return 0; if(o.v==='X') return o.q; const v=acct(o.v); return v&&vendorCovers(v,j)?ownVendorQ(v,vendorKind(j),j):0; }
 function outsource(c,j,o){
   if(!OUTSRC[j]) return `${JOBS[j].n} cannot be outsourced. Set up a team for it.`;
   if(JOBS[j].lv>(c.level||0)) return `${coName(c)} does not need ${JOBS[j].n.toLowerCase()} yet.`;
@@ -3449,7 +3473,7 @@ function endOut(c,j){ const o=(c.outs||{})[j]; if(!o) return; delete c.outs[j]; 
 function billOuts(){
   for(const c of S.C){ for(const j of Object.keys(c.outs||{})){ const o=c.outs[j];
     if(JOBS[j].lv>(c.level||0)){ delete c.outs[j]; continue; }
-    if(o.v!=='X'){ const v=acct(o.v), kind=vendorKind(j); if(!v||!v.units.some(u=>u.t===kind)){ delete c.outs[j]; logm(`${coName(c)}: the outsourcing contract for ${JOBS[j].n.toLowerCase()} lapsed because ${o.name} no longer runs a ${BIZ[kind].n} unit.`,'bad'); continue; } }
+    if(o.v!=='X'){ const v=acct(o.v), kind=vendorKind(j); if(!v||!vendorCovers(v,j)){ delete c.outs[j]; logm(`${coName(c)}: the outsourcing contract for ${JOBS[j].n.toLowerCase()} lapsed because ${o.name} ${!kind?'cannot provide this kind of work':v&&v.units.some(u=>u.t===kind)?'no longer has a team that does this work':'no longer runs a '+BIZ[kind].n+' unit'}.`,'bad'); continue; } }
     const fee=outFee(c,j,o); o.last=fee; c.cash-=fee; book(c,'outs',fee);
     if(o.v!=='X'){ const v=acct(o.v), kind=vendorKind(j), u=v.units.filter(x=>x.t===kind).sort((a,b)=>b.lv-a.lv)[0], cost=Math.round(fee*(1-BIZ[kind].margin));
       v.cash+=fee-cost; book(v,'rev',fee); book(v,'cogs',cost); u.mrev=(u.mrev||0)+fee; const m=um(u); m.rev+=fee; m.cost+=cost; }
@@ -3463,7 +3487,7 @@ function outModal(cid,j){
   openModal(`Outsource ${JOBS[j].n.toLowerCase()} · ${coName(c)}`,`<div id="os-body" style="display:flex;flex-direction:column;gap:12px">
     <p class="note">An outside vendor does the job for a monthly fee that follows the company's size. There is no team head or staff to recruit, and you can end the contract at any time. Quality is what the vendor delivers; a team of your own built around one job is usually comparable at Standard quality.${d?` <b>${esc(d.name)}</b> handles this job today and will hand it over.`:''}</p>
     <div class="eyebrow">Outside vendors this month</div><div class="rows">${ext.map((o,i)=>row(o,i,'x')).join('')}</div>
-    ${kind?`<div class="eyebrow">Your own group</div>${grp.length?`<div class="rows">${grp.map((o,i)=>row(o,i,'g')).join('')}</div>`:`<p class="note">No company in your group runs a ${BIZ[kind].n} unit yet. Open one in a subsidiary (it is a medium business, so the subsidiary must be at least a Usaha Kecil) and it can take this job, earning the fee inside the group.</p>`}`:`<p class="note">Only licensed outside firms can do this job, so group companies cannot take it.</p>`}
+    ${kind?`<div class="eyebrow">Your own group</div>${grp.length?`<div class="rows">${grp.map((o,i)=>row(o,i,'g')).join('')}</div>`:(S.C.some(v=>v!==c&&v.units.some(u=>u.t===kind))?`<p class="note">Your ${BIZ[kind].n} compan${S.C.filter(v=>v!==c&&v.units.some(u=>u.t===kind)).length>1?'ies':'y'} can only sell work it has a team for. A basic outsourcing firm supplies general affairs and office staff; for ${esc(JOBS[j].n.toLowerCase())} it first needs its own team handling that job${j==='logi'?' (or a Logistics & transport business team)':''}.</p>`:`<p class="note">No company in your group runs a ${BIZ[kind].n} unit yet. Open one in a subsidiary (it is a medium business, so the subsidiary must be at least a Usaha Kecil) and it can take this job, earning the fee inside the group.</p>`)}`:`<p class="note">Accounting, tax, legal and audit work needs licensed specialist firms, so your outsourcing companies cannot take it.</p>`}
     <div class="rows"><div class="row"><span class="k">Company account</span><span class="v">${rp(c.cash)}</span></div></div>
     <div class="btns"><button class="btn" data-act="close">Cancel</button></div></div>`,el=>{
       el.querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>{ const k=b.dataset.pick, o=(k[0]==='x'?ext:grp)[+k.slice(1)]; if(err(outsource(c,j,o))) return; closeModal(); render(); });
