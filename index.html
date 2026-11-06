@@ -947,21 +947,21 @@ function bondOffers(a){
   for(const T of [5,10,20]){ const cpn=Math.round(yieldAt(T,h)*8)/8; out.push({kind:'FR',name:`FR ${T}Y ${yearOf(h)+T}`,cpn,iss:h,mat:addMonths(h,12*T),freq:2,key:'f'+T,px:1,fee:0.001,min:10e6,label:`SUN FR ${T}-year · new issue · ${pc(cpn/100,2)} · due ${yearOf(h)+T}`,note:'Fixed-rate government bond (Seri FR) bought at the auction through the bank, at par. Semi-annual coupons. Its price moves against market yields: long tenors move most.'}); }
   return out.sort((x,y)=>'pfs'.indexOf(x.key[0])-'pfs'.indexOf(y.key[0]));
 }
-function buyBond(a,key,face){
+function buyBond(a,key,face,quiet){
   const o=bondOffers(a).find(x=>x.key===key); if(!o) return 'That bond is no longer on offer. Pick another.';
   face=Math.floor((+face||0)/1e6)*1e6;
   if(face<o.min) return `The minimum for ${o.name} is ${rp(o.min)} face value, in multiples of Rp 1 juta.`;
   if(o.kind==='ORI'&&key[0]==='p'&&a.id!=='P') return 'Retail ORI is only sold to individuals. A company can buy SUN FR series, or ORI on the secondary market.';
   const cost=face*o.px*(1+o.fee); if(a.cash<cost) return `Not enough in ${acctName(a.id)}'s account: ${rp(cost)} needed, ${rp(a.cash)} available.`;
   a.cash-=cost; const b={id:nid('G'),kind:o.kind,name:o.name,face,cpn:o.cpn,iss:o.iss,mat:o.mat,freq:o.freq,cost}; b.nc=nextCpn(b,Math.max(S.h,o.iss-1)); (a.bonds||(a.bonds=[])).push(b);
-  logm(`${acctName(a.id)} bought ${rp(face)} of ${o.name} (coupon ${String(o.cpn).replace('.',',')}%, due ${fdate(o.mat)}) for ${rp(cost)}.`,'good'); return null;
+  if(!quiet) logm(`${acctName(a.id)} bought ${rp(face)} of ${o.name} (coupon ${String(o.cpn).replace('.',',')}%, due ${fdate(o.mat)}) for ${rp(cost)}.`,'good'); return null;
 }
-function sellBond(a,id){
+function sellBond(a,id,quiet){
   const b=(a.bonds||[]).find(x=>x.id===id); if(!b) return 'That bond is gone.';
   const gross=b.face*bondPx(b)*(1-0.002), gain=gross-b.cost, tax=gain>0?gain*bondTax(S.h):0, net=gross-tax;
   a.cash+=net; a.bonds.splice(a.bonds.indexOf(b),1);
   if(Math.abs(gain-tax)>0.5){ book(a,'other',gain-tax); srcAdd(a,'bondgain',gain-tax); }
-  logm(`${acctName(a.id)} sold ${rp(b.face)} of ${b.name} for ${rp(net)}: ${gain>=0?'gain':'loss'} of ${rp(Math.abs(gain-tax))}${tax?` after ${pc(bondTax(S.h),0)} final tax`:''}.`,gain>=0?'good':'bad'); return null;
+  if(!quiet) logm(`${acctName(a.id)} sold ${rp(b.face)} of ${b.name} for ${rp(net)}: ${gain>=0?'gain':'loss'} of ${rp(Math.abs(gain-tax))}${tax?` after ${pc(bondTax(S.h),0)} final tax`:''}.`,gain>=0?'good':'bad'); return null;
 }
 function bondDay(){
   for(const a of [S.P,...S.C]) for(const b of [...(a.bonds||[])]){
@@ -1308,6 +1308,7 @@ function step(){
     c.cash+=rev-cogs; book(c,'rev',rev); book(c,'cogs',cogs); u.mrev=(u.mrev||0)+rev; const m=um(u); m.rev+=rev; m.cost+=cogs;
   }
   if(S.orders.length && isOpen(S.h)) runOrders();
+  deskTick();
 }
 
 function newDay(d){
@@ -1541,21 +1542,21 @@ function placeOrder(aid,sym,side,lots){
   logm(`${acctName(aid)}: ${side==='buy'?'buy':'sell'} order for ${lots} lot ${sym} queued for the next session.`);
   return null;
 }
-function execOrder(aid,sym,side,lots){
+function execOrder(aid,sym,side,lots,quiet){
   const a=acct(aid); if(!a) return 'Account no longer exists.';
   const px=quote(sym,S.h), sh=lots*lotSize(S.h), gross=sh*px;
   if(side==='buy'){
     const fee=gross*0.0015, cost=gross+fee;
     if(a.cash<cost) return `Not enough in the account: need ${rp(cost)}, ${acctName(aid)} has ${rp(a.cash)}.`;
     a.cash-=cost; const hd=a.hold[sym]||(a.hold[sym]={sh:0,cost:0}); hd.sh+=sh; hd.cost+=cost;
-    logm(`${acctName(aid)} bought ${lots} lot (${NF.format(sh)} shares) ${sym} at ${NF.format(px)}. Total ${rp(cost)} incl. fees.`);
+    if(!quiet) logm(`${acctName(aid)} bought ${lots} lot (${NF.format(sh)} shares) ${sym} at ${NF.format(px)}. Total ${rp(cost)} incl. fees.`);
   } else {
     const hd=a.hold[sym]; let q=sh; if(!hd||hd.sh<=0) return `${acctName(aid)} holds no ${sym}.`;
     if(q>hd.sh) q=hd.sh;
     const g=q*px, fee=g*0.0015, tax=g*0.001, proceeds=g-fee-tax, basis=hd.cost*q/hd.sh, gain=proceeds-basis;
     a.cash+=proceeds; hd.sh-=q; hd.cost-=basis; if(hd.sh<=0) delete a.hold[sym];
     book(a,'other',gain); srcAdd(a,'gain',gain); if(a.id==='P') S.P.realized=(S.P.realized||0)+gain;
-    logm(`${acctName(aid)} sold ${NF.format(q)} shares ${sym} at ${NF.format(px)}. Proceeds ${rp(proceeds)} after 0,1% final tax; ${gain>=0?'gain':'loss'} ${rp(Math.abs(gain))}.`, gain>=0?'good':'bad');
+    if(!quiet) logm(`${acctName(aid)} sold ${NF.format(q)} shares ${sym} at ${NF.format(px)}. Proceeds ${rp(proceeds)} after 0,1% final tax; ${gain>=0?'gain':'loss'} ${rp(Math.abs(gain))}.`, gain>=0?'good':'bad');
   }
   S.dirty=true; return null;
 }
@@ -1915,6 +1916,7 @@ function coDetail(c){
         <button class="btn sm bad" data-act="dissolve" data-id="${c.id}">Dissolve</button>
       </div></div></section>
   </div>
+  ${deskPanel(c)}
   ${feePanel(c)}`:''}`;
 }
 function plTable(c){
@@ -2321,6 +2323,7 @@ const ACT={
   editdept:d=>deptModal(d.id,d.v),
   closedept:d=>{ const c=acct(d.id), t=(c.depts||[]).find(x=>x.id===d.v); if(!t) return; askConfirm(`Close ${esc(t.name)}? Its ${t.staff+(t.head?1:0)} people are let go with severance and its jobs become unhandled.`,'Close team',()=>{ closeDept(c,t); render(); }); },
   convert:d=>convertModal(d.id),
+  desk:d=>deskModal(d.id),
   renamediv:d=>renameDivModal(d.id,d.v),
   closediv:d=>{ const c=acct(d.id), v=(c.divs||[]).find(x=>x.id===d.v); if(!v) return; const sev=v.head&&v.head.src==='pro'?2*v.head.sal:0;
     askConfirm(`Close ${esc(v.name)}? Its units go back to being monitored from head office or the nearest other division.${sev?` The division head's severance is ${rp(sev)}.`:''}`,'Close division',()=>{ if(sev){ c.cash-=sev; book(c,'wage',sev); } c.divs.splice(c.divs.indexOf(v),1); logm(`${coName(c)} closed ${v.name}.`); render(); }); },
@@ -2487,6 +2490,91 @@ function inbreng(c,u,tid){
   logm(`Inbreng: ${coName(c)} transferred ${b.n} in ${REG[u.reg].n} to ${coName(t)} at ${fee?'its appraised':'its'} book value of ${rp(val)}, for ${NF.format(ns)} new shares${holder==='P'?' issued to you':''}. ${acctName(holder)} now holds ${pc(ownPct(t,holder),1)} of ${coName(t)}.${fee?` Appraisal fee ${rp(fee)}.`:' Small enough to value from the books: no appraisal fee.'}`,'good');
   return null;
 }
+/* ---------- Treasury desk: a team that invests the company's spare money */
+const DESK_STRAT={
+  kons:{n:'Conservative',w:{dep:0.6,bond:0.35,stk:0.05},tenor:5,depM:12,picks:4,blurb:'Mostly deposito and short government bonds. Small, steady returns.'},
+  mod:{n:'Balanced',w:{dep:0.3,bond:0.4,stk:0.3},tenor:10,depM:6,picks:6,blurb:'A mix of deposito, 10-year SUN and blue chips.'},
+  agr:{n:'Aggressive',w:{dep:0.1,bond:0.2,stk:0.7},tenor:10,depM:3,picks:8,blurb:'Mostly IDX30 shares. Bigger swings, higher long-run return.'},
+  custom:{n:'Custom',w:null,tenor:10,depM:6,picks:6,blurb:'Your own split.'},
+};
+const deskOf=c=>(c.depts||[]).find(d=>d.desk);
+const deskW=d=>d.desk.strat==='custom'?d.desk.w:DESK_STRAT[d.desk.strat].w;
+const deskPort=c=>({dep:depSum(c),bond:bondMV(c),stk:holdMV(c)});
+function deskManaged(c,d){ const P=deskPort(c), tot=c.cash+P.dep+P.bond+P.stk; let m=Math.max(0,tot-(d.desk.buffer||0)); if(d.desk.cap>0) m=Math.min(m,d.desk.cap); return m; }
+function deskSkill(c,d){ return deptQ(c,d); }
+// Analysts' view of each stock: a skilled desk sees more of what is coming, a weak one mostly noise.
+function deskScore(c,d,s,rng){ const q=deskSkill(c,d), k=clamp((q-0.4)*0.2,0,0.1), i=lastFullIdx(S.h), j=Math.min(MK[s].length-1,i+63), fut=MK[s][j]/MK[s][i]-1, past=MK[s][i]/MK[s][Math.max(0,i-126)]-1;
+  return k*fut+0.05*past+0.15*gauss(rng); }
+function deskRebalance(c,d){
+  const D=d.desk, w=deskW(d), S0=DESK_STRAT[D.strat], M=deskManaged(c,d), P=deskPort(c), q=deskSkill(c,d), lot=lotSize(S.h);
+  const rng=mulberry((S.seed^S.h^parseInt(c.id.slice(1)))>>>0), acts=[];
+  const tgt={dep:M*w.dep,bond:M*w.bond,stk:M*w.stk}, band=Math.max(5e6,M*0.03);
+  // shares: sell what is out of favour or overweight first, so cash is free for the rest
+  const uni=SYMS.filter(s=>listed(s,S.h)&&IDX30.has(s)), scored=uni.map(s=>[s,deskScore(c,d,s,rng)]).sort((a,b)=>b[1]-a[1]);
+  const n=Math.max(1,S0.picks), picks=tgt.stk>5e6?scored.slice(0,n).map(x=>x[0]):[], per=picks.length?tgt.stk/picks.length:0;
+  let traded=0;
+  for(const s of Object.keys(c.hold)){ const v=c.hold[s].sh*quote(s,S.h), want=picks.includes(s)?per:0; if(v-want>Math.max(band/2,quote(s,S.h)*lot)){ const lots=Math.floor((v-want)/(quote(s,S.h)*lot)); if(lots>0&&!execOrder(c.id,s,'sell',lots,true)){ traded++; } } }
+  // bonds: trim if well above target
+  if(P.bond-tgt.bond>band*2){ let over=P.bond-tgt.bond; for(const b of [...(c.bonds||[])].sort((x,y)=>(y.face*bondPx(y)-y.cost)-(x.face*bondPx(x)-x.cost))){ if(over<=band) break; over-=b.face*bondPx(b); sellBond(c,b.id,true); acts.push('sold '+b.name); } }
+  // deposito: let excess run off, top up shortfall
+  if(P.dep-tgt.dep>band){ let over=P.dep-tgt.dep; for(const x of c.deps){ if(over<=0) break; if(x.aro){ x.aro=false; over-=x.amt; } } }
+  const spare=()=>Math.max(0,c.cash-(D.buffer||0));
+  { const need=tgt.dep-depSum(c); const amt=Math.floor(Math.min(need,spare())/1e6)*1e6; if(need>band&&amt>=1e6){ const r=depRate(S.h,S0.depM); c.cash-=amt; c.deps.push({id:nid('D'),amt,r,m:S0.depM,mat:addMonths(S.h,S0.depM),aro:true}); acts.push(`deposito ${rp(amt)} at ${pc(r)}`); } }
+  { const need=tgt.bond-bondMV(c); let T=S0.tenor; if(q>0.55){ const i=tdLE(keyH(S.h)), up=MK.Y10[Math.min(MK.Y10.length-1,i+63)]-MK.Y10[i]; if(up>0.4) T=5; else if(up<-0.4&&D.strat!=='kons') T=20; }
+    const face=Math.floor(Math.min(need,spare()/1.001)/1e6)*1e6; if(need>band&&face>=10e6&&!buyBond(c,'f'+T,face,true)) acts.push(`${rp(face)} SUN ${T}Y`); }
+  { for(const s of picks){ const px=quote(s,S.h), v=(c.hold[s]?.sh||0)*px, gap=per-v; if(gap<px*lot) continue; const lots=Math.floor(Math.min(gap,spare()/1.0015)/(px*lot)); if(lots>0&&!execOrder(c.id,s,'buy',lots,true)) traded++; } }
+  D.lastM=keyH(S.h)/100|0; D.last=S.h;
+  logm(`${coName(c)} · ${d.name}: monthly rebalance of ${rp(M)} (${DESK_STRAT[D.strat].n}).${traded||acts.length?' ':''}${traded?traded+' share trades'+(picks.length?', holding '+picks.join(', '):'')+'. ':''}${acts.length?acts.join(', ')+'.':''}`);
+  S.dirty=true;
+}
+function deskTick(){ if(!isOpen(S.h)||dOf(S.h).getUTCHours()!==10) return; const ym=keyH(S.h)/100|0; for(const c of S.C){ const d=deskOf(c); if(d&&d.head&&d.desk.lastM!==ym) deskRebalance(c,d); } }
+function deskModal(cid){
+  const c=acct(cid), d=deskOf(c), lv=c.level||0;
+  if(!d){ if(lv<1) return err(`A treasury desk needs a finance head of at least manager level, so it opens up at Usaha Kecil. ${coName(c)} is a Usaha ${SZ(c).n}. ${nextLevelText(c)}`);
+    if((c.depts||[]).length>=DEPT_MAX[lv]) return err(`As a Usaha ${SZ(c).n}, ${coName(c)} can run at most ${DEPT_MAX[lv]} teams. Close or merge one first, or grow: ${nextLevelText(c)}`); }
+  const D=d?d.desk:{strat:'mod',w:{dep:0.3,bond:0.4,stk:0.3},buffer:Math.round(Math.max(50e6,(c.hist.slice(-1)[0]?.wage||0)*3+(c.hist.slice(-1)[0]?.opex||0)*3)/1e6)*1e6,cap:0};
+  const st={strat:D.strat,dep:Math.round(D.w.dep*100),bond:Math.round(D.w.bond*100),stk:Math.round(D.w.stk*100),buffer:D.buffer,cap:D.cap||0};
+  const draw=el=>{
+    const body=el.querySelector('#tk-body'), w=st.strat==='custom'?{dep:st.dep,bond:st.bond,stk:st.stk}:Object.fromEntries(Object.entries(DESK_STRAT[st.strat].w).map(([k,v])=>[k,Math.round(v*100)]));
+    const plan=d?null:deptPlan(c,['treasury']), P=deskPort(c), tot=c.cash+P.dep+P.bond+P.stk, M=Math.max(0,Math.min(st.cap>0?st.cap:Infinity,tot-st.buffer));
+    body.innerHTML=`<p class="note">The desk invests ${esc(coName(c))}'s money above a cash buffer across deposito, government bonds (SUN FR) and IDX30 shares, and rebalances on the first trading day of each month. It manages <b>all</b> of the company's deposito, bonds and shares. A better team head picks better stocks and times bond purchases better; it also handles the treasury & bank relations job.</p>
+      <div class="biz-pick" role="group" aria-label="Strategy">${Object.entries(DESK_STRAT).map(([k,x])=>`<button type="button" data-s="${k}" aria-pressed="${k===st.strat}"><b>${x.n}</b><span>${x.blurb}</span></button>`).join('')}</div>
+      ${st.strat==='custom'?`<div class="fields"><label class="f">Deposito %<input type="number" id="tk-dep" min="0" max="100" value="${st.dep}"></label><label class="f">Bonds %<input type="number" id="tk-bond" min="0" max="100" value="${st.bond}"></label><label class="f">Shares %<input type="number" id="tk-stk" min="0" max="100" value="${st.stk}"></label></div>`:''}
+      <div class="fields"><label class="f">Cash buffer kept in the rekening<input type="number" id="tk-buf" min="0" step="1000000" value="${st.buffer}"></label><label class="f">Maximum to invest (0 = no limit)<input type="number" id="tk-cap" min="0" step="1000000" value="${st.cap}"></label></div>
+      <div class="rows">
+        <div class="row"><span class="k">Split</span><span class="v">deposito ${w.dep}% · bonds ${w.bond}% · shares ${w.stk}%</span></div>
+        <div class="row"><span class="k">Money the desk would manage now</span><span class="v">${rp(M)}</span></div>
+        ${plan?`<div class="row"><span class="k">Team</span><span class="v">${HEADT[lv].t} + ${plan.need} staff · about ${rp(plan.monthly)} / month</span></div><div class="row"><span class="k">Recruitment costs</span><span class="v">about ${rp(plan.setup)}</span></div>`:`<div class="row"><span class="k">Desk quality</span><span class="v">${Math.round(deskSkill(c,d)*100)}</span></div>`}
+      </div>
+      <p class="note" id="tk-chk"></p>
+      <div class="btns"><button class="btn pri" id="tk-go">${d?'Save mandate':'Set up the desk'}</button><button class="btn" data-act="close">Cancel</button></div>`;
+    const keep=()=>{ const g=q=>body.querySelector(q); if(g('#tk-dep')){ st.dep=+g('#tk-dep').value||0; st.bond=+g('#tk-bond').value||0; st.stk=+g('#tk-stk').value||0; } st.buffer=Math.max(0,+g('#tk-buf').value||0); st.cap=Math.max(0,+g('#tk-cap').value||0); };
+    body.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{ keep(); st.strat=b.dataset.s; draw(el); });
+    body.querySelectorAll('input').forEach(x=>x.addEventListener('change',()=>{ keep(); draw(el); }));
+    body.querySelector('#tk-go').onclick=()=>{ keep();
+      const ww=st.strat==='custom'?{dep:st.dep/100,bond:st.bond/100,stk:st.stk/100}:DESK_STRAT[st.strat].w;
+      if(st.strat==='custom'&&Math.abs(st.dep+st.bond+st.stk-100)>0.5){ body.querySelector('#tk-chk').className='note down'; body.querySelector('#tk-chk').textContent=`The split adds up to ${st.dep+st.bond+st.stk}%. Make it 100%.`; return; }
+      let dd=d;
+      if(!dd){ const old=deptOf(c,'treasury'); if(err(saveDept(c,'Treasury Desk',['treasury'],null))) return; dd=c.depts.find(x=>x.name==='Treasury Desk'); if(old&&old!==dd&&!old.jobs.length) logm(`${coName(c)}: ${old.name} has no jobs left after handing treasury to the desk.`,'bad'); }
+      dd.desk={strat:st.strat,w:ww,buffer:st.buffer,cap:st.cap,lastM:dd.desk?.lastM||0,since:dd.desk?.since||S.h};
+      logm(`${coName(c)} · ${dd.name}: mandate set to ${DESK_STRAT[st.strat].n} (deposito ${Math.round(ww.dep*100)}%, bonds ${Math.round(ww.bond*100)}%, shares ${Math.round(ww.stk*100)}%), cash buffer ${rp(st.buffer)}${st.cap?`, at most ${rp(st.cap)}`:''}.`,'good');
+      closeModal(); render(); };
+  };
+  openModal(d?`Treasury desk mandate · ${coName(c)}`:`Set up a treasury desk · ${coName(c)}`,'<div id="tk-body" style="display:flex;flex-direction:column;gap:12px"></div>',draw);
+}
+function deskPanel(c){
+  const d=deskOf(c), lv=c.level||0;
+  if(!d) return `<section class="panel"><div class="panel-h"><div><h3>Treasury desk</h3><div class="note">A finance team that invests spare cash in deposito, SUN bonds and IDX30 shares for you.${lv<1?' Opens up at Usaha Kecil.':''}</div></div><button class="btn sm ${lv>=1?'pri':'ghost'}" data-act="desk" data-id="${c.id}">Set up a desk</button></div></section>`;
+  const D=d.desk, w=deskW(d);
+  return `<section class="panel"><div class="panel-h"><div><h3>Treasury desk</h3><div class="note">${esc(d.name)} · ${DESK_STRAT[D.strat].n} · ${d.head?`${esc(headTitle(c,d))} ${esc(d.head.name)}, skill ${d.head.skill}`:'head being recruited'} · rebalances on the first trading day of each month</div></div><button class="btn sm" data-act="desk" data-id="${c.id}">Change mandate</button></div>
+    <div class="panel-b">${LH(()=>{ const P=deskPort(c), M=deskManaged(c,d), inv=P.dep+P.bond+P.stk||1, cost=Object.values(c.hold).reduce((s,h)=>s+h.cost,0)+(c.bonds||[]).reduce((s,b)=>s+b.cost,0), unr=P.stk+P.bond-cost;
+      const row=(l,k)=>`<div class="row"><span class="k">${l}</span><span class="v">${rp(P[k])} · ${pc(P[k]/inv,0)} <span class="muted">(target ${Math.round(w[k]*100)}%)</span></span></div>`;
+      return `<div class="grid2"><div class="rows">${row('Deposito','dep')}${row('Government bonds','bond')}${row('IDX30 shares','stk')}<div class="row total"><span class="k">Invested</span><span class="v">${rp(P.dep+P.bond+P.stk)}</span></div></div>
+        <div class="rows"><div class="row"><span class="k">Mandate now</span><span class="v">${rp(M)}</span></div><div class="row"><span class="k">Cash buffer</span><span class="v">${rp(D.buffer)}</span></div><div class="row"><span class="k">Unrealised gain, shares and bonds</span><span class="v ${cls(unr)}">${sgn(unr,x=>rp(x))}</span></div><div class="row"><span class="k">Desk quality</span><span class="v">${Math.round(deskSkill(c,d)*100)}</span></div><div class="row"><span class="k">Last rebalance</span><span class="v">${D.last?fdate(D.last):'first trading day of next month'}</span></div></div></div>
+        ${Object.keys(c.hold).length?`<p class="note">Holding ${Object.keys(c.hold).map(s=>`${s} ${rp(c.hold[s].sh*quote(s,S.h))}`).join(' · ')}</p>`:''}`; })}
+      <p class="note">Interest, coupons, dividends and trading gains go to the profit and loss as other income. Close the desk from Teams on the Organisation tab; its holdings stay in the company.</p></div></section>`;
+}
+
 /* ---------- Converting a UD or CV into a PT */
 // Simplification: small contributions are valued from the books by the notary; a KJPP appraisal is only needed above this.
 const kjppLimit=h=>1e9*cpi(h);
