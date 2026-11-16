@@ -1901,6 +1901,7 @@ function coDetail(c){
         <label class="f">Amount<input type="number" id="inj-${c.id}" min="0" step="1000000"></label>
         <button class="btn" data-act="inject" data-id="${c.id}">Inject</button>
       </div>
+      ${c.form==='PT'&&c.own.P>0?`<div class="btns"><button class="btn sm" data-act="sellstake" data-id="${c.id}">Transfer my shares to one of my PTs</button><span class="note" style="align-self:center">You hold ${pc(ownPct(c,'P'),1)} personally.</span></div>`:''}
       <label class="check"><input type="checkbox" id="umr-${c.id}" data-chg="autoumr" data-id="${c.id}" ${c.autoUMR?'checked':''}> Raise wages to the new UMR every January</label>
     </div></section>
   <section class="panel"><div class="panel-h"><h3>Profit & loss</h3><span class="eyebrow">Rupiah</span></div>
@@ -2326,6 +2327,7 @@ const ACT={
   closedept:d=>{ const c=acct(d.id), t=(c.depts||[]).find(x=>x.id===d.v); if(!t) return; askConfirm(`Close ${esc(t.name)}? Its ${t.staff+(t.head?1:0)} people are let go with severance and its jobs become unhandled.`,'Close team',()=>{ closeDept(c,t); render(); }); },
   convert:d=>convertModal(d.id),
   desk:d=>deskModal(d.id),
+  sellstake:d=>stakeModal(d.id),
   renamediv:d=>renameDivModal(d.id,d.v),
   closediv:d=>{ const c=acct(d.id), v=(c.divs||[]).find(x=>x.id===d.v); if(!v) return; const sev=v.head&&v.head.src==='pro'?2*v.head.sal:0;
     askConfirm(`Close ${esc(v.name)}? Its units go back to being monitored from head office or the nearest other division.${sev?` The division head's severance is ${rp(sev)}.`:''}`,'Close division',()=>{ if(sev){ c.cash-=sev; book(c,'wage',sev); } c.divs.splice(c.divs.indexOf(v),1); logm(`${coName(c)} closed ${v.name}.`); render(); }); },
@@ -2673,6 +2675,71 @@ function convertModal(cid){
     body.querySelector('#cv-go').onclick=()=>{ keep(); if(err(convertCo(c,st))) return; closeModal(); render(); };
   };
   openModal(`Turn ${coName(c)} into a PT`,'<div id="cv-body" style="display:flex;flex-direction:column;gap:12px"></div>',draw);
+}
+
+/* ---------- Moving your personal shares into one of your PTs */
+const stakeFee=h=>Math.round(2e6*cpi(h)/1000)*1000;
+function stakeBuyers(c){ return S.C.filter(y=>y!==c&&y.form==='PT'&&!isAncestor(c,y)); }
+function stakeInfo(c,o){
+  const y=acct(o.buyer), held=c.own.P||0, sh=Math.max(0,Math.min(held,Math.round(held*clamp(+o.pct||0,0,100)/100))), bv=Math.max(0,equity(c))/c.shares, val=sh*bv, fee=stakeFee(S.h);
+  const nominal=sh*(c.paidIn/c.shares), gain=Math.max(0,val-nominal), tax=o.how==='cash'?Math.round(pit(yearOf(S.h),gain)):0;
+  const bvY=y?Math.max(100,equity(y)/y.shares):0, ns=y&&o.how==='swap'?Math.max(1,Math.round(val/bvY)):0;
+  return {y,held,sh,bv,val,fee,nominal,gain,tax,bvY,ns};
+}
+function stakeCheck(c,o){
+  if(c.form!=='PT') return `${coName(c)} is a ${c.form==='PTP'?'PT Perorangan, which can only be owned by one individual':c.form+', which has no shares to transfer'}.`;
+  const I=stakeInfo(c,o);
+  if(!I.held) return `You hold no shares in ${coName(c)}.`;
+  if(!I.y) return 'Choose the PT that takes the shares.';
+  if(I.y===c) return 'A company cannot hold its own shares here. Pick another PT.';
+  if(I.y.form!=='PT') return `${coName(I.y)} is not a regular PT, so it cannot hold shares in another company.`;
+  if(isAncestor(c,I.y)) return `${coName(c)} already owns ${coName(I.y)}, directly or through a subsidiary. Selling it your shares in ${coName(c)} would make the two companies own each other.`;
+  if(!I.sh) return 'Choose how much of your stake to move.';
+  if(I.val<=0) return `${coName(c)} has no positive equity, so its shares carry no value to sell. Use a swap only once it is worth something.`;
+  if(o.how==='cash'&&I.y.cash<I.val+I.fee) return `${coName(I.y)} needs ${rp(I.val+I.fee)} (price ${rp(I.val)} plus notary ${rp(I.fee)}) and holds ${rp(I.y.cash)}. Move fewer shares, inject cash first, or swap for new shares instead.`;
+  if(o.how==='swap'&&I.y.cash<I.fee) return `${coName(I.y)} needs ${rp(I.fee)} for the notary deed.`;
+  if(o.how==='cash'&&S.P.cash<I.tax-I.val) return 'Not enough to pay the income tax on the gain.';
+  return null;
+}
+function sellStake(c,o){
+  const pre=stakeCheck(c,o); if(pre) return pre;
+  const I=stakeInfo(c,o), y=I.y;
+  y.cash-=I.fee; book(y,'opex',I.fee);
+  c.own.P-=I.sh; if(c.own.P<=0) delete c.own.P; c.own[y.id]=(c.own[y.id]||0)+I.sh;
+  if(o.how==='cash'){ y.cash-=I.val; S.P.cash+=I.val-I.tax; if(I.tax) expAdd('tax',I.tax); }
+  else { y.shares+=I.ns; y.own.P=(y.own.P||0)+I.ns; y.paidIn+=I.val; }
+  const top=Object.entries(c.own).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1])[0]; if(top&&top[0]!=='F') c.parent=top[0];
+  updateLevel(y,true);
+  logm(`You ${o.how==='cash'?'sold':'transferred'} ${NF.format(I.sh)} shares (${pc(I.sh/c.shares,1)}) of ${coName(c)} to ${coName(y)} at book value ${rp(I.val)}${o.how==='cash'?`, paid in cash${I.tax?`; income tax on the ${rp(I.gain)} gain ${rp(I.tax)}`:''}`:` in exchange for ${NF.format(I.ns)} new shares of ${coName(y)} (inbreng saham)`}. ${coName(y)} now holds ${pc(ownPct(c,y.id),1)} of ${coName(c)}. Notary fee ${rp(I.fee)}.`,'good');
+  S.dirty=true; return null;
+}
+function stakeModal(cid){
+  const c=acct(cid); if(!c) return;
+  const buyers=stakeBuyers(c);
+  if(err(c.form!=='PT'?stakeCheck(c,{}):!(c.own.P>0)?`You hold no shares in ${coName(c)}.`:!buyers.length?`You have no other regular PT that could take the shares. Found a PT first (it cannot be one that ${coName(c)} owns).`:null)) return;
+  const st={buyer:buyers[0].id,pct:100,how:'swap'};
+  const draw=el=>{
+    const body=el.querySelector('#sk-body'), I=stakeInfo(c,st), chk=stakeCheck(c,st);
+    body.innerHTML=`<p class="note">Move your personal shares in ${esc(coName(c))} into another PT you control, for example to put a holding company on top of your businesses. Shares change hands at book value (equity ÷ shares) by notarial deed. ${esc(coName(c))}'s units, staff and accounts stay where they are; only the owner changes.</p>
+      <label class="f">Company that takes the shares<select id="sk-buyer">${buyers.map(y=>`<option value="${y.id}" ${y.id===st.buyer?'selected':''}>${esc(coName(y))} · account ${rp(y.cash)}${y.own.P>0?' · you hold '+pc(ownPct(y,'P'),0):''}</option>`).join('')}</select></label>
+      <div class="fields"><label class="f">Share of your stake to move (%)<input type="number" id="sk-pct" min="1" max="100" value="${st.pct}"></label>
+      <label class="f">Payment<select id="sk-how"><option value="swap" ${st.how==='swap'?'selected':''}>Swap for new shares in the buyer (inbreng saham)</option><option value="cash" ${st.how==='cash'?'selected':''}>Sale for cash from the buyer's account</option></select></label></div>
+      <div class="rows">
+        <div class="row"><span class="k">Shares moved</span><span class="v">${NF.format(I.sh)} of your ${NF.format(I.held)} · ${pc(I.sh/c.shares,1)} of ${esc(coName(c))}</span></div>
+        <div class="row"><span class="k">Book value per share</span><span class="v">${rp(I.bv)}</span></div>
+        <div class="row"><span class="k">Price</span><span class="v">${rp(I.val)}</span></div>
+        ${st.how==='cash'?`<div class="row"><span class="k">Gain over the nominal value you paid in</span><span class="v">${rp(I.gain)}</span></div><div class="row"><span class="k">Your income tax on the gain (PPh 21 rates)</span><span class="v">${rp(I.tax)}</span></div><div class="row"><span class="k">Cash to your personal account</span><span class="v up">${rp(I.val-I.tax)}</span></div>`
+          :`<div class="row"><span class="k">New shares for you in ${esc(I.y?coName(I.y):'')}</span><span class="v">${NF.format(I.ns)} at ${rp(I.bvY)} each</span></div><div class="row"><span class="k">Your stake in ${esc(I.y?coName(I.y):'')}</span><span class="v">${I.y?pc(ownPct(I.y,'P'),1)+' → '+pc(((I.y.own.P||0)+I.ns)/(I.y.shares+I.ns),1):''}</span></div>`}
+        <div class="row"><span class="k">Notary deed, paid by the buyer</span><span class="v">${rp(I.fee)}</span></div>
+        <div class="row"><span class="k">${esc(I.y?coName(I.y):'')} after the deal</span><span class="v">holds ${I.y?pc(((c.own[I.y.id]||0)+I.sh)/c.shares,1):''} of ${esc(coName(c))}</span></div>
+      </div>
+      <p class="note ${chk?'down':''}">${chk?esc(chk):'Ready.'}</p>
+      <div class="btns"><button class="btn pri" id="sk-go">${st.how==='cash'?'Sell the shares':'Swap the shares'}</button><button class="btn" data-act="close">Cancel</button></div>`;
+    const keep=()=>{ st.buyer=body.querySelector('#sk-buyer').value; st.pct=clamp(+body.querySelector('#sk-pct').value||0,0,100); st.how=body.querySelector('#sk-how').value; };
+    body.querySelectorAll('select,input').forEach(x=>x.addEventListener('change',()=>{ keep(); draw(el); }));
+    body.querySelector('#sk-go').onclick=()=>{ keep(); if(err(sellStake(c,st))) return; closeModal(); render(); };
+  };
+  openModal(`Transfer your shares · ${coName(c)}`,'<div id="sk-body" style="display:flex;flex-direction:column;gap:12px"></div>',draw);
 }
 
 function isAncestor(a,b){ const seen=new Set(); const walk=x=>{ for(const k in x.own){ if(!(x.own[k]>0)||k==='P'||k==='F') continue; if(k===a.id) return true; if(seen.has(k)) continue; seen.add(k); const p=acct(k); if(p&&walk(p)) return true; } return false; }; return walk(b); }
@@ -3023,7 +3090,7 @@ function vRep(){
       <tr><td><b>Equity</b></td>${cmp(A.bs.eq,B?.bs?B.bs.eq:null)}</tr></tbody></table></div><p class="note">Paid-up capital today ${rp(c.paidIn)}, statutory reserve ${rp(c.reserve||0)}.</p>`:'<p class="note">Balance sheets are recorded from now on; this period closed before the feature existed.</p>'}</div></section>`;
   } else {
     const keys=[...new Set([...Object.keys(A.src),...(B?Object.keys(B.src):[])])].sort();
-    const ex=[['living','Living costs'],['interest','Loan and overdraft interest']];
+    const ex=[['living','Living costs'],['interest','Loan and overdraft interest'],['tax','Income tax on share sales']];
     const totI=x=>Object.values(x.src).reduce((s,v)=>s+v,0), totE=x=>Object.values(x.exp).reduce((s,v)=>s+v,0);
     body+=`<div class="grid2"><section class="panel"><div class="panel-h"><h3>Personal income statement</h3><span class="eyebrow">${esc(P0.sub)}${P0.state?' · '+P0.state:''}</span></div><div class="panel-b"><div class="tbl-wrap"><table>${th}<tbody>
       ${keys.map(k=>`<tr><td>${esc(srcLabel(k,{...(B?.names||{}),...A.names},false))}</td>${cmp(A.src[k]||0,B?(B.src[k]||0):null)}</tr>`).join('')||'<tr><td colspan="4" class="muted">No income this period.</td></tr>'}
