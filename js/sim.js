@@ -71,7 +71,7 @@ function step(){
   if(hr===0){ newDay(d); if(S.over) return; }
   // retail sales by the hour
   for(const c of S.C) for(const u of c.units){
-    const b=BIZ[u.t]; if(b.kind!=='retail'||u.w<=0) continue;
+    const b=BIZ[u.t]; if(b.kind!=='retail'||u.w<=0||frozenNow(c)) continue;
     if(hr<b.open[0]||hr>=b.open[1]) continue;
     const daily=b.lv[u.lv].rev*cpi(S.h)*REG[u.reg].dem*staffF(u)*moraleF(u,S.h)*(u.t==='wisata'?1:seasonRetail(S.h))*shockF(u.t,u.reg,S.h)*(u.df||1)*retailMult(u.t,u.reg)*bizF(c,u)*mgmtF(c)*(1-leak(c,u))*(1+0.08*fnScore(c,'mkt')/100)*(1+0.04*fnScore(c,'hr')/100);
     const rev=daily/(b.open[1]-b.open[0])*Math.max(0.2,1+0.2*rg());
@@ -108,6 +108,7 @@ function newDay(d){
 
 function tryStart(c,u,quiet){
   const b=BIZ[u.t], cost=b.lv[u.lv].input*cpi(S.h)*(b.land?landAdj(u.reg):1)*(1-0.04*jobQ(c,'proc'));
+  if(frozenNow(c)){ u.wait=true; return false; }
   if(c.cash<cost){ if(!u.wait) logm(`${coName(c)}: ${b.n} is idle, waiting for ${rp(cost)} in the company account to restock.`,'bad'); u.wait=true; return false; }
   c.cash-=cost; book(c,'cogs',cost); um(u).cost+=cost; u.ph='grow'; u.d=0; u.wait=false; u.inCost=cost; return true;
 }
@@ -196,15 +197,47 @@ function migrateOrg(c){ c.depts=c.depts||[]; if(!(c.org||[]).length){ delete c.o
   const lv=c.level||0; for(const fn of FNS){ const ps=c.org.filter(p=>p.fn===fn); if(!ps.length) continue; const jobs=jobsAt(lv).filter(j=>JOBS[j].fn===fn&&!deptOf(c,j)); if(!jobs.length) continue;
     const best=ps.sort((a,b)=>b.skill-a.skill)[0]; c.depts.push({id:nid('T'),name:{fin:'Keuangan',ops:'Operasional',mkt:'Pemasaran',hr:'SDM'}[fn],jobs,head:{...best,tier:'dhead',hl:lv},staff:Math.max(1,ps.length-1),staffSal:staffPay(c),since:S.h}); }
   delete c.org; }
+// Compliance risks. What can go wrong, how often and what it costs depend on the company's actual
+// workforce and how hazardous its businesses are, not on its paper size. Statutory fines are the
+// nominal amounts in the law of the day; most of the real cost is the back payment or the fix.
+const HAZ={batubara:1,minyak:1,gas:1,tangkap:1,spbu:0.8,agen_lpg:0.6,mebel:0.6,logistik:0.5,konveksi:0.4,batik:0.4,sawit:0.4,karet:0.3,tembakau:0.3,ayam:0.3,sapi:0.3,udang:0.3};
+const hazOf=t=>HAZ[t]??(BIZ[t]&&BIZ[t].kind==='cycle'?0.2:0.05); // farms 0.2; shops, eateries, services 0.05
+function workforce(c){ return c.units.reduce((n,u)=>n+u.w,0)+(c.depts||[]).reduce((n,d)=>n+d.staff+(d.head?1:0),0); }
 function corpRisks(c,h){
   if(!c.units.length) return;
-  const lv=c.level||0, lg=1-0.3*jobQ(c,'legal'), wages=c.units.reduce((s,u)=>s+u.w*u.sal,0);
-  const f=(j,base,chance,msg)=>{ if(JOBS[j].lv>lv) return; const q=jobQ(c,j); if(rnd()<chance*(1-q)){ const fine=Math.round(base*lg*(1-0.5*q)/1000)*1000; c.cash-=fine; book(c,'fine',fine); logm(`${coName(c)}: ${msg} Fine ${rp(fine)}.`,'bad'); S.dirty=true; } };
-  f('payroll',Math.max(2e6*cpi(h),wages*0.3),0.03,'a BPJS Ketenagakerjaan audit found contributions reported late.');
-  f('regrep',15e6*cpi(h)*(1+lv),0.04,'reports to the ministry and Disnaker (LKPM, WLKP) were filed late.');
-  f('qc',20e6*cpi(h)*lv,0.02,'a K3 workplace safety inspection found violations.');
-  f('ir',10e6*cpi(h)*lv,0.02,'a labour dispute went to the Disnaker mediator.');
+  const k=keyH(h), W=workforce(c), lg=1-0.3*jobQ(c,'legal'), wages=c.units.reduce((s,u)=>s+u.w*u.sal,0)+(c.depts||[]).reduce((s,d)=>s+d.staff*d.staffSal,0);
+  const q=j=>Math.max(jobQ(c,j),0.25*mgmt(c)/100); // with no team for it, the directors still catch some of it
+  const hit=(j,p)=>rnd()<p*(1-q(j));
+  const pay=(amt,msg,kind)=>{ amt=Math.round(amt/1000)*1000; if(amt<=0) return; c.cash-=amt; book(c,'fine',amt); logm(`${coName(c)}: ${msg}`,kind||'bad'); S.dirty=true; };
+  // K3 workplace safety (UU 1/1970). P2K3 and later SMK3 are compulsory with 100+ workers or high-hazard work.
+  const hz=c.units.map(u=>({u,z:hazOf(u.t)})), hiHaz=hz.some(x=>x.z>=0.8), exp=hz.reduce((s,x)=>s+x.z*x.u.w,0);
+  const k3p=(W>=100||hiHaz?0.015:0.002)*Math.min(2,0.3+exp/20);
+  if(exp>0.5&&hit('qc',k3p)){
+    const x=hz.filter(y=>y.z>=0.2&&y.u.w>0).sort((a,b)=>b.z*b.u.w-a.z*a.u.w)[0]||hz[0], u=x.u;
+    const fix=(5+3*Math.sqrt(u.w))*umr(u.reg,h)*x.z*(0.6+0.8*rnd())*lg, smk3=W>=100&&k>=20120412;
+    pay(fix+100000,`a K3 safety inspection at ${BIZ[u.t].n} in ${REG[u.reg].n} found ${x.z>=0.8?'unsafe installations and missing protective gear':x.z>=0.4?'unguarded machines and blocked fire exits':'missing fire extinguishers and first-aid kits'}${smk3?', and no SMK3 safety system (PP 50/2012)':''}. Corrections ordered: ${rp(fix)}, plus the Rp 100.000 fine set by UU 1/1970.`);
+  }
+  // Social security audit: under-reported wages mean back contributions plus 2% a month.
+  const covered=k>=20140101||W>=10||wages>=1e6;
+  if(covered&&wages>0&&hit('payroll',0.004+0.02*Math.min(1,W/100))){
+    const m=6+Math.floor(rnd()*7), back=wages*bpjsRate(h)*(0.15+0.2*rnd())*m, intr=back*0.02*m/2;
+    pay((back+intr)*lg,`${k<20140101?'a Jamsostek':'a BPJS'} audit found wages under-reported for ${m} months. Back contributions ${rp(back)} plus ${rp(intr)} late interest (2% a month).`);
+  }
+  // Wajib Lapor Ketenagakerjaan (UU 7/1981): the fine has been capped at Rp 1 juta since 1981.
+  if(W>0&&hit('regrep',0.003+0.006*Math.min(1,W/50))) pay(1e6,`the yearly workforce report to Disnaker (WLKP) was missing. Fine Rp 1.000.000 under UU 7/1981.`);
+  // Investment report to BKPM for medium and large companies: written warnings, then a frozen licence.
+  if((c.level||0)>=2&&k>=20100101&&hit('regrep',0.02)){
+    c.lkpm=(c.lkpm||[]).filter(t=>h-t<8766).concat(h);
+    if(c.lkpm.length>=3){ c.lkpm=[]; c.frozen=h+30*24; logm(`${coName(c)}: a third warning in a year for late investment reports (LKPM). BKPM freezes its business licence for one month: its shops and services cannot sell and no new production cycle can start until ${fdate(c.frozen)}.`,'bad'); toast('Licence frozen',`${coName(c)} cannot trade for a month.`); S.dirty=true; }
+    else logm(`${coName(c)}: written warning ${c.lkpm.length} of 3 from BKPM for a late investment report (LKPM). A third within a year freezes the business licence.`,'bad');
+  }
+  // Labour disputes need a real workforce; they end in a settlement, not a fine.
+  if(W>=10&&hit('ir',0.002+0.012*Math.min(1,W/200))){
+    const n=Math.min(10,1+Math.floor(W/60*rnd())), mo=2+Math.floor(rnd()*5), avg=wages/Math.max(1,W);
+    pay(n*mo*avg*lg,`${n} worker${n>1?'s':''} took a dismissal dispute to the Disnaker mediator${k>=20060114?' (UU 2/2004)':' (P4D)'}. Settled for ${mo} months' pay each.`);
+  }
 }
+const frozenNow=c=>c.frozen&&S.h<c.frozen;
 function livingCost(h){ return 1.5e6*cpi(h)*(0.55+0.45*umr(S.home,h)/umr('3171',h)); }
 function yearClose(y){
   for(const c of S.C){
